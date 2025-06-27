@@ -68,7 +68,9 @@ public static class DataUtils
     {
         var zone = new Zone
         {
-            ID = id, Name = name, Timestamp = timestamp,
+            ID = id,
+            Name = name,
+            Timestamp = timestamp,
             POIs = { { "origin", new Vector3(0.0f, 0.0f, 0.0f) }, { "spawn", spawn } },
             DefaultOutpostId = defaultOutpostId
         };

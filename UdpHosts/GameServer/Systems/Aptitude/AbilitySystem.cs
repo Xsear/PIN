@@ -192,10 +192,10 @@ public class AbilitySystem
     {
         if (PlayerVehicleCalldownRequests.ContainsKey(entityId))
         {
-            Console.WriteLine($"Discarded an unconsumed vehicle calldown request");
+            _logger.Warning("Discarded an unconsumed vehicle calldown request");
             PlayerVehicleCalldownRequests.Remove(entityId);
         }
-        
+
         PlayerVehicleCalldownRequests.Add(entityId, request);
     }
 
@@ -203,10 +203,10 @@ public class AbilitySystem
     {
         if (PlayerDeployableCalldownRequests.ContainsKey(entityId))
         {
-            Console.WriteLine($"Discarded an unconsumed deployable calldown request");
+            _logger.Warning("Discarded an unconsumed deployable calldown request");
             PlayerDeployableCalldownRequests.Remove(entityId);
         }
-        
+
         PlayerDeployableCalldownRequests.Add(entityId, request);
     }
 
@@ -214,16 +214,16 @@ public class AbilitySystem
     {
         if (PlayerThumperCalldownRequests.ContainsKey(entityId))
         {
-            Console.WriteLine($"Discarded an unconsumed thumper calldown request");
+            _logger.Warning("Discarded an unconsumed thumper calldown request");
             PlayerThumperCalldownRequests.Remove(entityId);
         }
-        
+
         PlayerThumperCalldownRequests.Add(entityId, request);
     }
 
     public void HandleLocalProximityAbilitySuccess(IShard shard, IAptitudeTarget source, uint commandId, uint time, AptitudeTargets targets)
     {
-        Console.WriteLine($"HandleLocalProximityAbilitySuccess Source {source}, Command {commandId}, Time {time}, Targets {string.Join(Environment.NewLine, targets)} ({targets.Count})");
+        _logger.Debug("HandleLocalProximityAbilitySuccess Source {Source}, Command {CommandId}, Time {Time}, Targets {Targets} ({TargetCount})", source, commandId, time, string.Join(Environment.NewLine, targets), targets.Count);
 
         var commandDef = SDBInterface.GetRegisterClientProximityCommandDef(commandId);
 

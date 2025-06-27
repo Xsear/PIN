@@ -58,7 +58,7 @@ public class NetworkPlayer : NetworkClient, INetworkPlayer
         AssignedShard.Entities.TryGetValue(CharacterId, out var existing);
         if (existing != null)
         {
-            Console.WriteLine($"Closing login because entity with this id is already zoned in");
+            Log.Information("Closing login because entity with this id is already zoned in");
             var resp = new AeroMessages.Control.CloseConnection { Unk = new byte[] { 0, 0, 0, 0 } };
             NetChannels[ChannelType.Control].SendMessage(resp);
             return;
@@ -75,7 +75,7 @@ public class NetworkPlayer : NetworkClient, INetworkPlayer
         }
         catch
         {
-            Console.WriteLine($"Could not get character over GRPC, will use fallback");
+            Log.Information("Could not get character over GRPC, will use fallback");
         }
 
         // Load inventory so we get loadouts
@@ -173,7 +173,7 @@ public class NetworkPlayer : NetworkClient, INetworkPlayer
         CharacterEntity.SetSpawnTime(AssignedShard.CurrentTime);
         CharacterEntity.SetCharacterState(CharacterStateData.CharacterStatus.Respawning, AssignedShard.CurrentTime);
         CharacterEntity.SetSpawnPose();
-        baseController.RespawnTimesProp = new RespawnTimesData(); 
+        baseController.RespawnTimesProp = new RespawnTimesData();
         baseController.RespawnTimesProp = null; // Make the field dirty so we send clear because we probably should send clear. At some point investigaste if this is neccessary.
         baseController.TimedDailyRewardProp = new TimedDailyRewardData { State = TimedDailyRewardData.TimedDailyRewardState.ROLLED, MaxRolls = 1, CountdownToTime = AssignedShard.CurrentTime };
         NetChannels[ChannelType.ReliableGss].SendChanges(baseController, CharacterEntity.EntityId);

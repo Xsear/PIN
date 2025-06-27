@@ -21,7 +21,7 @@ public class CreateItemServerCommand : ServerCommand
             SourceFeedback("No typeId was provided to create item command", context);
             return;
         }
-        
+
         uint typeId = ParseUIntParameter(parameters[0]);
         var itemInfo = SDBInterface.GetRootItem(typeId);
         if (itemInfo == null)
@@ -38,7 +38,7 @@ public class CreateItemServerCommand : ServerCommand
             {
                 quantity = Math.Max(1, ParseUIntParameter(parameters[1]));
             }
-           
+
             context.SourcePlayer.Inventory.AddResource(typeId, quantity);
         }
         else

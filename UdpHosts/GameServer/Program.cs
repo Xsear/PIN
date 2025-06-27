@@ -73,7 +73,7 @@ internal static class Program
                                                   {
                                                       h.AdditionalNewLineAfterOption = false;
                                                       return HelpText.DefaultParsingErrorsHandler(result, h);
-                                                  }, 
+                                                  },
                                           e => e);
         Console.WriteLine(helpText);
     }

@@ -19,8 +19,8 @@ public class Channel
     private const int GameSocketHeaderSize = 4;
     private const int TotalHeaderSize = ProtocolHeaderSize + GameSocketHeaderSize;
     private const int MaxPacketSize = PacketServer.MTU - TotalHeaderSize;
-    
-    private static readonly byte[] XorByte = { 0xFF, 0xAA, 0xCC  };
+
+    private static readonly byte[] XorByte = { 0xFF, 0xAA, 0xCC };
 
     private readonly ILogger _logger;
 
@@ -29,7 +29,7 @@ public class Channel
     private readonly ConcurrentQueue<Memory<byte>> _outgoingPackets;
     private SortedDictionary<ushort, GamePacket> _incomingSplitMessagePackets;
 
-    private Channel(ChannelType channelType, bool isSequenced, bool isReliable,  bool isGSS, INetworkClient networkClient, ILogger logger)
+    private Channel(ChannelType channelType, bool isSequenced, bool isReliable, bool isGSS, INetworkClient networkClient, ILogger logger)
     {
         Type = channelType;
         IsSequenced = isSequenced;
@@ -46,9 +46,9 @@ public class Channel
     }
 
     public delegate void PacketAvailableDelegate(GamePacket packet);
-    
+
     public event PacketAvailableDelegate? PacketAvailable;
-    
+
     private ChannelType Type { get; }
     private bool IsSequenced { get; }
     private bool IsReliable { get; }
@@ -116,7 +116,7 @@ public class Channel
                     .SelectMany((pair) => pair.Value.Peek(pair.Value.BytesRemaining).ToArray())
                     .ToArray();
                     _incomingSplitMessagePackets.Clear();
-                    
+
                     var combinedPacket = new GamePacket(packet.Header, new ReadOnlyMemory<byte>(combined));
 
                     _client.SendAck(Type, sequenceNumber, packet.Received);
@@ -142,7 +142,7 @@ public class Channel
 
                 PacketAvailable?.Invoke(packet);
             }
-            
+
             LastActivity = DateTime.Now;
         }
     }
@@ -383,7 +383,7 @@ public class Channel
                     var typecode = (Enums.GSS.Controllers)aeroMessageIdAttribute.ControllerId;
                     return SendPacketMemory(entityId, messageId, typecode, ref packetMemory);
                 }
-            
+
             case AeroMessageIdAttribute.MsgType.Control:
                 return SendPacketMemoryMatrix(messageId, ref packetMemory); // Everything's gonna be just fine
             default:

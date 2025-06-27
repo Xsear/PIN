@@ -145,7 +145,7 @@ internal class GameServer : PacketServer
             }
             catch (Exception)
             {
-                Console.WriteLine("Failed to establish GRPC stream, retrying in 30 seconds");
+                Logger.Error("Failed to establish GRPC stream, retrying in 30 seconds");
                 await Task.Delay(TimeSpan.FromSeconds(30), ct);
             }
         }

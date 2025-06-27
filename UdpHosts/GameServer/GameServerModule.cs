@@ -1,6 +1,6 @@
-﻿using System;
-using System.Configuration;
+﻿using System.Configuration;
 using Autofac;
+using AutofacSerilogIntegration;
 using GameServer.Aptitude;
 using GameServer.Physics;
 using GameServer.Systems.Chat;
@@ -16,9 +16,9 @@ public class GameServerModule : Module
 {
     protected override void Load(ContainerBuilder builder)
     {
+        builder.RegisterLogger();
         RegisterTypes(builder);
         RegisterInstances(builder);
-
         base.Load(builder);
     }
 
@@ -78,7 +78,7 @@ public class GameServerModule : Module
                     }
                     else
                     {
-                        Console.WriteLine($"Cannot parse LoadMapsCollision setting value");
+                        Log.Error("Cannot parse LoadMapsCollision setting value");
                     }
                 }
             }
@@ -91,7 +91,7 @@ public class GameServerModule : Module
                 }
                 else
                 {
-                    Console.WriteLine($"Cannot parse LoadZoneEntities setting value");
+                    Log.Error("Cannot parse LoadZoneEntities setting value");
                 }
             }
 
@@ -103,7 +103,7 @@ public class GameServerModule : Module
         {
             var loggerConfig = new LoggerConfiguration()
             .ReadFrom.AppSettings()
-            .WriteTo.Console(theme: SerilogTheme.Custom);
+            .WriteTo.Console(theme: SerilogTheme.Custom, outputTemplate: "[{Timestamp:HH:mm:ss.fff} {Level:u4} {SourceContext}] {Message:lj}{NewLine}{Exception}");
 
             var settings = ctx.Resolve<GameServerSettings>();
 
@@ -112,14 +112,16 @@ public class GameServerModule : Module
                 loggerConfig = loggerConfig.MinimumLevel.Is(settings.LogLevel.Value);
             }
 
-            return loggerConfig.CreateLogger();
+            var logger = loggerConfig.CreateLogger();
+            Log.Logger = logger;
+            return logger;
         })
         .As<ILogger>().SingleInstance();
 
         builder.Register(ctx =>
         {
             var settings = ctx.Resolve<GameServerSettings>();
-            Console.WriteLine($"Opening SDB from {settings.StaticDBPath}");
+            Log.Information("Opening SDB from {Path}", settings.StaticDBPath);
             var sdb = new SDB();
             sdb.Read(settings.StaticDBPath);
 

@@ -52,7 +52,7 @@ public class AdminService
         }
         else
         {
-            Console.WriteLine($"Unknown command: {commandName}");
+            _logger.Information("Unknown command: {CommandName}", commandName);
             sourcePlayer?.SendDebugChat($"Unknown command: {commandName}");
         }
     }

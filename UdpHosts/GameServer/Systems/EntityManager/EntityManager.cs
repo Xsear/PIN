@@ -49,7 +49,7 @@ public class EntityManager
     private bool hasSpawnedTestEntities = false;
 
     private ConcurrentDictionary<ulong, HashSet<INetworkPlayer>> ScopedPlayersByEntity = new ConcurrentDictionary<ulong, HashSet<INetworkPlayer>>();
-    
+
     private ConcurrentQueue<ScopeInRequest> QueuedScopeIn = new ConcurrentQueue<ScopeInRequest>();
     private ConcurrentDictionary<ulong, Lifetime> LifetimeByEntity = new ConcurrentDictionary<ulong, Lifetime>();
 
@@ -192,7 +192,7 @@ public class EntityManager
 
             var timer = new Timer(state =>
                  {
-                     Console.WriteLine($"deployable: Executing ability {deployableInfo.PoweredOnAbility}");
+                     _logger.Debug("deployable: Executing ability {PoweredOnAbility}", deployableInfo.PoweredOnAbility);
                      _shard.Abilities.HandleActivateAbility(_shard, deployableEntity, poweredOnAbility);
 
                      ((Timer)state)?.Dispose();
@@ -233,9 +233,10 @@ public class EntityManager
     public AreaVisualDataEntity SpawnAreaVisualData(Vector3 position, ScopingComponent scoping)
     {
         var areaVisualData = new AreaVisualDataEntity(_shard, _shard.GetNextGuid())
-            {
-                Scoping = scoping, Position = position,
-            };
+        {
+            Scoping = scoping,
+            Position = position,
+        };
         Add(areaVisualData.EntityId, areaVisualData);
         return areaVisualData;
     }
@@ -643,7 +644,7 @@ public class EntityManager
 
                         break;
                     default:
-                        Console.WriteLine($"Unhandled KeyframeRequest for {typecode}");
+                        _logger.Warning("Unhandled KeyframeRequest for {Typecode}", typecode);
                         break;
                 }
 
@@ -668,7 +669,7 @@ public class EntityManager
 
                         break;
                     default:
-                        Console.WriteLine($"Unhandled KeyframeRequest for {typecode}");
+                        _logger.Warning("Unhandled KeyframeRequest for {Typecode}", typecode);
                         break;
                 }
 
@@ -692,7 +693,7 @@ public class EntityManager
 
                         break;
                     default:
-                        Console.WriteLine($"Unhandled KeyframeRequest for {typecode}");
+                        _logger.Warning("Unhandled KeyframeRequest for {Typecode}", typecode);
                         break;
                 }
 
@@ -791,7 +792,7 @@ public class EntityManager
 
                         break;
                     default:
-                        Console.WriteLine($"Unhandled KeyframeRequest for {typecode}");
+                        _logger.Warning("Unhandled KeyframeRequest for {Typecode}", typecode);
                         break;
                 }
 
@@ -876,7 +877,7 @@ public class EntityManager
 
                         break;
                     default:
-                        Console.WriteLine($"Unhandled KeyframeRequest for {typecode}");
+                        _logger.Warning("Unhandled KeyframeRequest for {Typecode}", typecode);
                         break;
                 }
 
@@ -901,7 +902,7 @@ public class EntityManager
 
                         break;
                     default:
-                        Console.WriteLine($"Unhandled KeyframeRequest for {typecode}");
+                        _logger.Warning("Unhandled KeyframeRequest for {Typecode}", typecode);
                         break;
                 }
 
@@ -942,8 +943,7 @@ public class EntityManager
                         break;
 
                     default:
-                        Console.WriteLine($"Unhandled KeyframeRequest for {typecode}");
-
+                        _logger.Warning("Unhandled KeyframeRequest for {Typecode}", typecode);
                         break;
                 }
 
@@ -967,7 +967,7 @@ public class EntityManager
 
                         break;
                     default:
-                        Console.WriteLine($"Unhandled KeyframeRequest for {typecode}");
+                        _logger.Warning("Unhandled KeyframeRequest for {Typecode}", typecode);
                         break;
                 }
 
@@ -991,7 +991,7 @@ public class EntityManager
 
                         break;
                     default:
-                        Console.WriteLine($"Unhandled KeyframeRequest for {typecode}");
+                        _logger.Warning("Unhandled KeyframeRequest for {Typecode}", typecode);
                         break;
                 }
 
@@ -1015,13 +1015,13 @@ public class EntityManager
 
                         break;
                     default:
-                        Console.WriteLine($"Unhandled KeyframeRequest for {typecode}");
+                        _logger.Warning("Unhandled KeyframeRequest for {Typecode}", typecode);
                         break;
                 }
 
                 break;
             default:
-                Console.WriteLine($"Unhandled KeyframeRequest for {typecode}");
+                _logger.Warning("Unhandled KeyframeRequest for {Typecode}", typecode);
                 break;
         }
     }
@@ -1093,7 +1093,7 @@ public class EntityManager
             bool haveObserver = observer != null;
             if (haveObserver)
             {
-                 player.NetChannels[ChannelType.ReliableGss].SendViewKeyframe(observer, entity.EntityId);
+                player.NetChannels[ChannelType.ReliableGss].SendViewKeyframe(observer, entity.EntityId);
             }
         }
         else if (entity is MeldingBubbleEntity meldingBubble)
@@ -1102,7 +1102,7 @@ public class EntityManager
             bool haveObserver = observer != null;
             if (haveObserver)
             {
-                 player.NetChannels[ChannelType.ReliableGss].SendViewKeyframe(observer, entity.EntityId);
+                player.NetChannels[ChannelType.ReliableGss].SendViewKeyframe(observer, entity.EntityId);
             }
         }
         else if (entity is VehicleEntity vehicle)
@@ -1623,7 +1623,7 @@ public class EntityManager
             }
         }
     }
- 
+
     private void OnAddedEntity(IEntity entity)
     {
         // TEMP: Hack to introduce new entities to connected players. This should be replaced with tick logic that sends down entities based on scope and distance.

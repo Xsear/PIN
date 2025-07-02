@@ -6,7 +6,9 @@ using GameServer.Entities;
 using GameServer.Entities.Outpost;
 using GameServer.Physics;
 using GameServer.Systems.Chat;
+using GameServer.Systems.Combat;
 using GameServer.Systems.Encounters;
+using GameServer.Systems.ProjectileSim;
 using Serilog;
 using Shared.Udp;
 
@@ -31,6 +33,7 @@ public interface IShard : IPacketSender
     AdminService Admin { get; }
     uint ZoneId { get; }
     ILogger Logger { get; }
+    CombatSim CombatSim { get; }
 
     int CurrentPlayers => Clients.Count;
 

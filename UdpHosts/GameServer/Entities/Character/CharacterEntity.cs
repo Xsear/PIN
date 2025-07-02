@@ -32,10 +32,14 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     public CharacterEntity(IShard shard, ulong eid, CharacterEntity owner = null)
         : base(shard, eid, owner)
     {
-        AeroEntityId = new EntityId() { Backing = EntityId, ControllerId = Controller.Character };
+        AeroEntityId = new EntityId()
+        {
+            Backing = EntityId,
+            ControllerId = Controller.Character
+        };
 
         CurrentStatModifiers = new Dictionary<StatModifierIdentifier, Dictionary<uint, ActiveStatModifier>>();
-        foreach(StatModifierIdentifier stat in Enum.GetValues(typeof(StatModifierIdentifier)))
+        foreach (StatModifierIdentifier stat in Enum.GetValues(typeof(StatModifierIdentifier)))
         {
             CurrentStatModifiers.Add(stat, new Dictionary<uint, ActiveStatModifier>());
         }
@@ -66,44 +70,53 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     public bool Alive { get; set; }
     public short TimeSinceLastJump { get; set; }
     public bool IsAirborne { get; set; }
-    public bool IsMoving { get => MovementStateContainer.Sprint || MovementStateContainer.Movement; }
-    public bool IsCrouching { get => MovementStateContainer.Crouch; }
 
-    public Dictionary<PermissionFlagsData.CharacterPermissionFlags, bool> CurrentPermissions { get; set; } = new Dictionary<PermissionFlagsData.CharacterPermissionFlags, bool>()
+    public bool IsMoving
     {
-        { PermissionFlagsData.CharacterPermissionFlags.movement, true },
-        { PermissionFlagsData.CharacterPermissionFlags.sprint, true },
-        { PermissionFlagsData.CharacterPermissionFlags.jump, true },
-        { PermissionFlagsData.CharacterPermissionFlags.interact, true },
-        { PermissionFlagsData.CharacterPermissionFlags.weapon, true },
-        { PermissionFlagsData.CharacterPermissionFlags.melee, true },
-        { PermissionFlagsData.CharacterPermissionFlags.abilities, true },
-        { PermissionFlagsData.CharacterPermissionFlags.flashlight, true },
-        { PermissionFlagsData.CharacterPermissionFlags.unk_8, false },
-        { PermissionFlagsData.CharacterPermissionFlags.cheat_jump_midair, false },
-        { PermissionFlagsData.CharacterPermissionFlags.glider, false },
-        { PermissionFlagsData.CharacterPermissionFlags.unk_11, false },
-        { PermissionFlagsData.CharacterPermissionFlags.jetpack, true },
-        { PermissionFlagsData.CharacterPermissionFlags.map, true },
-        { PermissionFlagsData.CharacterPermissionFlags.unk_14, true },
-        { PermissionFlagsData.CharacterPermissionFlags.unk_15, true },
-        { PermissionFlagsData.CharacterPermissionFlags.new_character, false },
-        { PermissionFlagsData.CharacterPermissionFlags.glider_hud, false },
-        { PermissionFlagsData.CharacterPermissionFlags.crouch, true },
-        { PermissionFlagsData.CharacterPermissionFlags.cheat_float, false },
-        { PermissionFlagsData.CharacterPermissionFlags.detect_resources, false },
-        { PermissionFlagsData.CharacterPermissionFlags.unk_21, true },
-        { PermissionFlagsData.CharacterPermissionFlags.calldown_abilities, true },
-        { PermissionFlagsData.CharacterPermissionFlags.unk_23, true },
-        { PermissionFlagsData.CharacterPermissionFlags.emotes, true },
-        { PermissionFlagsData.CharacterPermissionFlags.unk_25, true },
-        { PermissionFlagsData.CharacterPermissionFlags.unk_26, true },
-        { PermissionFlagsData.CharacterPermissionFlags.self_revive, true },
-        { PermissionFlagsData.CharacterPermissionFlags.respawn_input, false },
-        { PermissionFlagsData.CharacterPermissionFlags.free_repairs, false },
-        { PermissionFlagsData.CharacterPermissionFlags.battleframe_abilities, true },
-        { PermissionFlagsData.CharacterPermissionFlags.unk_31, true },
-    };
+        get => MovementStateContainer.Sprint || MovementStateContainer.Movement;
+    }
+
+    public bool IsCrouching
+    {
+        get => MovementStateContainer.Crouch;
+    }
+
+    public Dictionary<PermissionFlagsData.CharacterPermissionFlags, bool> CurrentPermissions { get; set; } =
+        new Dictionary<PermissionFlagsData.CharacterPermissionFlags, bool>()
+        {
+            { PermissionFlagsData.CharacterPermissionFlags.movement, true },
+            { PermissionFlagsData.CharacterPermissionFlags.sprint, true },
+            { PermissionFlagsData.CharacterPermissionFlags.jump, true },
+            { PermissionFlagsData.CharacterPermissionFlags.interact, true },
+            { PermissionFlagsData.CharacterPermissionFlags.weapon, true },
+            { PermissionFlagsData.CharacterPermissionFlags.melee, true },
+            { PermissionFlagsData.CharacterPermissionFlags.abilities, true },
+            { PermissionFlagsData.CharacterPermissionFlags.flashlight, true },
+            { PermissionFlagsData.CharacterPermissionFlags.unk_8, false },
+            { PermissionFlagsData.CharacterPermissionFlags.cheat_jump_midair, false },
+            { PermissionFlagsData.CharacterPermissionFlags.glider, false },
+            { PermissionFlagsData.CharacterPermissionFlags.unk_11, false },
+            { PermissionFlagsData.CharacterPermissionFlags.jetpack, true },
+            { PermissionFlagsData.CharacterPermissionFlags.map, true },
+            { PermissionFlagsData.CharacterPermissionFlags.unk_14, true },
+            { PermissionFlagsData.CharacterPermissionFlags.unk_15, true },
+            { PermissionFlagsData.CharacterPermissionFlags.new_character, false },
+            { PermissionFlagsData.CharacterPermissionFlags.glider_hud, false },
+            { PermissionFlagsData.CharacterPermissionFlags.crouch, true },
+            { PermissionFlagsData.CharacterPermissionFlags.cheat_float, false },
+            { PermissionFlagsData.CharacterPermissionFlags.detect_resources, false },
+            { PermissionFlagsData.CharacterPermissionFlags.unk_21, true },
+            { PermissionFlagsData.CharacterPermissionFlags.calldown_abilities, true },
+            { PermissionFlagsData.CharacterPermissionFlags.unk_23, true },
+            { PermissionFlagsData.CharacterPermissionFlags.emotes, true },
+            { PermissionFlagsData.CharacterPermissionFlags.unk_25, true },
+            { PermissionFlagsData.CharacterPermissionFlags.unk_26, true },
+            { PermissionFlagsData.CharacterPermissionFlags.self_revive, true },
+            { PermissionFlagsData.CharacterPermissionFlags.respawn_input, false },
+            { PermissionFlagsData.CharacterPermissionFlags.free_repairs, false },
+            { PermissionFlagsData.CharacterPermissionFlags.battleframe_abilities, true },
+            { PermissionFlagsData.CharacterPermissionFlags.unk_31, true },
+        };
 
     public ulong CurrentPermissionsValue => GetCurrentPermissionsValue();
 
@@ -113,8 +126,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     public CharacterStateData CharacterState { get; set; }
     public int TimePlayed { get; set; }
     public HostilityInfoData HostilityInfo { get; set; }
-    public MaxVital MaxShields { get; set; }
-    public MaxVital MaxHealth { get; set; }
+    public MaxVital MaxShields { get; private set; }
+    public MaxVital MaxHealth { get; private set; }
     public GibVisuals GibVisualsInfo { get; set; }
     public ProcessDelayData ProcessDelay { get; set; }
     public EmoteData Emote { get; set; }
@@ -131,7 +144,14 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     public FireModeData FireMode_0 { get; set; }
     public FireModeData FireMode_1 { get; set; }
     public PermissionFlagsData PermissionFlags { get; set; }
-    public AuthorizedTerminalData AuthorizedTerminal { get; set; } = new AuthorizedTerminalData { TerminalType = 0, TerminalId = 0, TerminalEntityId = 0 };
+
+    public AuthorizedTerminalData AuthorizedTerminal { get; set; } = new AuthorizedTerminalData
+    {
+        TerminalType = 0,
+        TerminalId = 0,
+        TerminalEntityId = 0
+    };
+
     public AttachedToData? AttachedTo { get; set; } = null;
     public IEntity AttachedToEntity { get; set; } = null;
     public int SelectedLoadout { get; set; }
@@ -205,26 +225,30 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     public CharacterLoadout CurrentLoadout { get; set; }
 
     public Dictionary<StatModifierIdentifier, Dictionary<uint, ActiveStatModifier>> CurrentStatModifiers { get; set; }
+
     public Dictionary<StatModifierIdentifier, float> BaseStatModifiers { get; set; } = new()
     {
-        { StatModifierIdentifier.RunSpeedMult,         1.0f },
-        { StatModifierIdentifier.FireRateModifier,     1.0f },
-        { StatModifierIdentifier.FwdRunSpeedMult,      1.0f },
-        { StatModifierIdentifier.JumpHeightMult,       1.0f },
-        { StatModifierIdentifier.AirControlMult,       1.0f },
-        { StatModifierIdentifier.ThrustStrengthMult,   1.0f },
-        { StatModifierIdentifier.ThrustAirControl,     1.0f },
-        { StatModifierIdentifier.Friction,             1.0f },
-        { StatModifierIdentifier.AmmoConsumption,      1.0f },
-        { StatModifierIdentifier.MaxTurnRate,          0.0f },
-        { StatModifierIdentifier.TurnSpeed,            1.0f },
-        { StatModifierIdentifier.TimeDilation,         1.0f },
-        { StatModifierIdentifier.AccuracyModifier,     1.0f },
-        { StatModifierIdentifier.GravityMult,          1.0f },
-        { StatModifierIdentifier.AirResistanceMult,    1.0f },
-        { StatModifierIdentifier.WeaponChargeupMod,    1.0f },
+        { StatModifierIdentifier.RunSpeedMult, 1.0f },
+        { StatModifierIdentifier.FireRateModifier, 1.0f },
+        { StatModifierIdentifier.FwdRunSpeedMult, 1.0f },
+        { StatModifierIdentifier.JumpHeightMult, 1.0f },
+        { StatModifierIdentifier.AirControlMult, 1.0f },
+        { StatModifierIdentifier.ThrustStrengthMult, 1.0f },
+        { StatModifierIdentifier.ThrustAirControl, 1.0f },
+        { StatModifierIdentifier.Friction, 1.0f },
+        { StatModifierIdentifier.AmmoConsumption, 1.0f },
+        { StatModifierIdentifier.MaxTurnRate, 0.0f },
+        { StatModifierIdentifier.TurnSpeed, 1.0f },
+        { StatModifierIdentifier.TimeDilation, 1.0f },
+        { StatModifierIdentifier.AccuracyModifier, 1.0f },
+        { StatModifierIdentifier.GravityMult, 1.0f },
+        { StatModifierIdentifier.AirResistanceMult, 1.0f },
+        { StatModifierIdentifier.WeaponChargeupMod, 1.0f },
         { StatModifierIdentifier.WeaponDamageDealtMod, 1.0f },
     };
+
+    public int CurrentHealth { get; private set; } = 0;
+    public int CurrentShields { get; private set; } = 0;
 
     internal MovementStateContainer MovementStateContainer { get; set; } = new();
 
@@ -237,7 +261,11 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     {
         // TODO: GetMonsterVisualOptions
         var monsterInfo = SDBInterface.GetMonster(typeId);
-        var chassisWarpaint = SDBUtils.GetChassisWarpaint(monsterInfo.ChassisId, monsterInfo.FullbodyWarpaintPaletteId, monsterInfo.ArmorWarpaintPaletteId, monsterInfo.BodysuitWarpaintPaletteId, monsterInfo.GlowWarpaintPaletteId);
+        var chassisWarpaint = SDBUtils.GetChassisWarpaint(monsterInfo.ChassisId,
+            monsterInfo.FullbodyWarpaintPaletteId,
+            monsterInfo.ArmorWarpaintPaletteId,
+            monsterInfo.BodysuitWarpaintPaletteId,
+            monsterInfo.GlowWarpaintPaletteId);
 
         // TODO: Consider internalizing into the CharacterLoadout instead?
         var loadout = new CharacterLoadout();
@@ -293,10 +321,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
                 Gradients = Array.Empty<uint>(),
                 Colors = new uint[5]
                 {
-                    monsterInfo.SkinColor,
-                    monsterInfo.LipColor,
-                    monsterInfo.EyeColor,
-                    monsterInfo.HairColor,
+                    monsterInfo.SkinColor, monsterInfo.LipColor, monsterInfo.EyeColor, monsterInfo.HairColor,
                     monsterInfo.FacialHairColor
                 },
                 Palettes = Array.Empty<VisualsPaletteBlock>(),
@@ -316,14 +341,20 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         {
             SetWeaponIndex(new WeaponIndexData()
             {
-                Index = 1, Unk1 = 1, Unk2 = 0, Time = Shard.CurrentTime
+                Index = 1,
+                Unk1 = 1,
+                Unk2 = 0,
+                Time = Shard.CurrentTime
             });
         }
         else if (monsterInfo.Weapon2Id != 0)
         {
             SetWeaponIndex(new WeaponIndexData()
             {
-                Index = 2, Unk1 = 1, Unk2 = 0, Time = Shard.CurrentTime
+                Index = 2,
+                Unk1 = 1,
+                Unk2 = 0,
+                Time = Shard.CurrentTime
             });
         }
     }
@@ -353,8 +384,10 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
                 Eyes = (uint)remoteData.CharacterVisuals.Eyes.Id,
                 VoiceSet = (uint)remoteData.CharacterVisuals.VoiceSet.Id,
 
-                HeadAccessories = remoteData.CharacterVisuals.HeadAccessories.ToList<WebIdValueColor>().Select(item => (uint)item.Id).ToArray(),
-                Ornaments = remoteData.CharacterVisuals.Ornaments.ToList<WebId>().Select(item => (uint)item.Id).ToArray(),
+                HeadAccessories = remoteData.CharacterVisuals.HeadAccessories.ToList<WebIdValueColor>()
+                                            .Select(item => (uint)item.Id).ToArray(),
+                Ornaments = remoteData.CharacterVisuals.Ornaments.ToList<WebId>().Select(item => (uint)item.Id)
+                                      .ToArray(),
 
                 SkinColor = remoteData.CharacterVisuals.SkinColor.Value.Color,
                 LipColor = remoteData.CharacterVisuals.LipColor.Value.Color,
@@ -397,10 +430,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
                 Gradients = Array.Empty<uint>(),
                 Colors = new uint[5]
                 {
-                    visuals.SkinColor,
-                    visuals.LipColor,
-                    visuals.EyeColor,
-                    visuals.HairColor,
+                    visuals.SkinColor, visuals.LipColor, visuals.EyeColor, visuals.HairColor,
                     visuals.FacialHairColor
                 },
                 Palettes = Array.Empty<VisualsPaletteBlock>(),
@@ -513,7 +543,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             EndUnk1 = 0,
             EndUnk2 = 0
         });
-        
+
         SetCharacterStats(new CharacterStatsData
         {
             ItemAttributes = loadout.GetItemAttributes(),
@@ -718,7 +748,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     {
         CharacterState = new CharacterStateData
         {
-            State = characterStatus, Time = time
+            State = characterStatus,
+            Time = time
         };
         Character_ObserverView.CharacterStateProp = CharacterState;
         if (Character_BaseController != null)
@@ -726,7 +757,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             Character_BaseController.CharacterStateProp = CharacterState;
         }
     }
-    
+
     public void SetControllingPlayer(INetworkPlayer player)
     {
         Player = player;
@@ -873,7 +904,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     {
         WeaponIndex = value;
         Character_CombatView.WeaponIndexProp = value;
-        
+
         if (Character_CombatController != null)
         {
             Character_CombatController.WeaponIndexProp = value;
@@ -928,19 +959,23 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         // Member
         GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
         GetType().GetProperty($"StatusEffects_{index}").SetValue(this, data, null);
-        
+
         // CombatController
         if (Character_CombatController != null)
         {
-            Character_CombatController.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop").SetValue(Character_CombatController, time, null);
-            Character_CombatController.GetType().GetProperty($"StatusEffects_{index}Prop").SetValue(Character_CombatController, data, null);
+            Character_CombatController.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop")
+                                      .SetValue(Character_CombatController, time, null);
+            Character_CombatController.GetType().GetProperty($"StatusEffects_{index}Prop")
+                                      .SetValue(Character_CombatController, data, null);
         }
-        
+
         // CombatView
-        Character_CombatView.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop").SetValue(Character_CombatView, time, null);
-        Character_CombatView.GetType().GetProperty($"StatusEffects_{index}Prop").SetValue(Character_CombatView, data, null);
+        Character_CombatView.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop")
+                            .SetValue(Character_CombatView, time, null);
+        Character_CombatView.GetType().GetProperty($"StatusEffects_{index}Prop")
+                            .SetValue(Character_CombatView, data, null);
     }
-    
+
     public override void ClearStatusEffect(byte index, ushort time, uint debugEffectId)
     {
         Console.WriteLine($"Character.ClearStatusEffect Index {index}, Time {time}, Id {debugEffectId}");
@@ -948,17 +983,21 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         // Member
         GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
         GetType().GetProperty($"StatusEffects_{index}").SetValue(this, null, null);
-        
+
         // CombatController
         if (Character_CombatController != null)
         {
-            Character_CombatController.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop").SetValue(Character_CombatController, time, null);
-            Character_CombatController.GetType().GetProperty($"StatusEffects_{index}Prop").SetValue(Character_CombatController, null, null);
+            Character_CombatController.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop")
+                                      .SetValue(Character_CombatController, time, null);
+            Character_CombatController.GetType().GetProperty($"StatusEffects_{index}Prop")
+                                      .SetValue(Character_CombatController, null, null);
         }
-        
+
         // CombatView
-        Character_CombatView.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop").SetValue(Character_CombatView, time, null);
-        Character_CombatView.GetType().GetProperty($"StatusEffects_{index}Prop").SetValue(Character_CombatView, null, null);
+        Character_CombatView.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop")
+                            .SetValue(Character_CombatView, time, null);
+        Character_CombatView.GetType().GetProperty($"StatusEffects_{index}Prop")
+                            .SetValue(Character_CombatView, null, null);
     }
 
     public void SetAttachedTo(AttachedToData newValue, IEntity entity)
@@ -995,17 +1034,21 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             // Member
             GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
             GetType().GetProperty($"StatusEffects_{index}").SetValue(this, null, null);
-            
+
             // CombatController
             if (Character_CombatController != null)
             {
-                Character_CombatController.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop").SetValue(Character_CombatController, time, null);
-                Character_CombatController.GetType().GetProperty($"StatusEffects_{index}Prop").SetValue(Character_CombatController, null, null);
+                Character_CombatController.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop")
+                                          .SetValue(Character_CombatController, time, null);
+                Character_CombatController.GetType().GetProperty($"StatusEffects_{index}Prop")
+                                          .SetValue(Character_CombatController, null, null);
             }
-            
+
             // CombatView
-            Character_CombatView.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop").SetValue(Character_CombatView, time, null);
-            Character_CombatView.GetType().GetProperty($"StatusEffects_{index}Prop").SetValue(Character_CombatView, null, null);
+            Character_CombatView.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop")
+                                .SetValue(Character_CombatView, time, null);
+            Character_CombatView.GetType().GetProperty($"StatusEffects_{index}Prop")
+                                .SetValue(Character_CombatView, null, null);
         }
 
         Shard.EntityMan.FlushChanges(this);
@@ -1067,7 +1110,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         Player.Inventory.EquipItemByGUID(loadoutId, slot, guid);
         ApplyLoadout(CurrentLoadout);
     }
-    
+
     public void EquipVisualBySdbId(int loadoutId, LoadoutVisualType visualSlot, LoadoutSlotType slot, uint sdb_id)
     {
         Player.Inventory.EquipVisualBySdbId(loadoutId, visualSlot, slot, sdb_id);
@@ -1111,7 +1154,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         {
             weapon = weaponDetails.Alt;
         }
-  
+
         var weaponAttributesDict = weaponAttributes.ToDictionary((StatsData p) => p.Id);
 
         float weaponAttributeSpread = 1f;
@@ -1136,7 +1179,9 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
 
         // Calculate spread factor using Main even for Underbarrel, based on testing in-game.
         // Bio Crossbow - Max spread 0, min spread 0.75, attribute spread 1, expected spread 0.75 => Ignore max spread if 0 and use attribute spread
-        float spreadFactor = weaponDetails.Main.MaxSpread > 0f ? weaponAttributeSpread / weaponDetails.Main.MaxSpread : weaponAttributeSpread;
+        float spreadFactor = weaponDetails.Main.MaxSpread > 0f
+                                 ? weaponAttributeSpread / weaponDetails.Main.MaxSpread
+                                 : weaponAttributeSpread;
 
         return new ActiveWeaponDetails()
         {
@@ -1161,11 +1206,80 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             muzzleBase.Z = 1.08f;
         }
 
-        var muzzleBaseWorld = QuaternionEx.Transform(muzzleBase, QuaternionEx.Inverse(Rotation)); // Match the characters orientation
-        var muzzleOffset = new Vector3(aimDirection.X, aimDirection.Y, aimDirection.Z) * 0.1f; // Offset like a sphere based on aim
-        var muzzleOffsetWorld = muzzleBaseWorld + muzzleOffset; // Apply offset to base in world
-        var origin = Position + muzzleOffsetWorld; // Translate to character
+        var muzzleBaseWorld =
+            QuaternionEx.Transform(muzzleBase, QuaternionEx.Inverse(Rotation)); // Match the characters orientation
+        var muzzleOffset =
+            new Vector3(aimDirection.X, aimDirection.Y, aimDirection.Z) * 0.1f; // Offset like a sphere based on aim
+        var muzzleOffsetWorld = muzzleBaseWorld + muzzleOffset;                 // Apply offset to base in world
+        var origin = Position + muzzleOffsetWorld;                              // Translate to character
         return origin;
+    }
+
+    public void SetMaxHealth(int newValue, bool resetCurrent)
+    {
+        MaxHealth = new()
+        {
+            Value = newValue,
+            Time = Shard.CurrentTime,
+        };
+
+        Character_ObserverView.MaxHealthProp = MaxHealth;
+        if (Character_BaseController != null)
+        {
+            Character_BaseController.MaxHealthProp = MaxHealth;
+        }
+
+        if (resetCurrent)
+        {
+            SetCurrentHealth(MaxHealth.Value);
+        }
+        else
+        {
+            SetCurrentHealth(Math.Min(MaxHealth.Value, CurrentHealth));
+        }
+    }
+
+    public void SetMaxShields(int newValue, bool resetCurrent)
+    {
+        MaxShields = new()
+        {
+            Value = newValue,
+            Time = Shard.CurrentTime,
+        };
+
+        if (Character_BaseController != null)
+        {
+            Character_BaseController.MaxShieldsProp = MaxShields;
+        }
+
+        if (resetCurrent)
+        {
+            SetCurrentShields(MaxShields.Value);
+        }
+        else
+        {
+            SetCurrentShields(Math.Min(MaxShields.Value, CurrentShields));
+        }
+    }
+
+    public void SetCurrentHealth(int newValue)
+    {
+        CurrentHealth = Math.Min(Math.Max(0, newValue), MaxHealth.Value);
+        byte pct = MaxHealth.Value > 0 ? (byte)((float)(CurrentHealth / MaxHealth.Value) * 100) : (byte)0;
+        Character_ObserverView.CurrentHealthPctProp = pct;
+        if (Character_BaseController != null)
+        {
+            Character_BaseController.CurrentHealthProp = CurrentHealth;
+        }
+    }
+
+    public void SetCurrentShields(int newValue)
+    {
+        CurrentShields = Math.Min(Math.Max(0, newValue), MaxShields.Value);
+        if (Character_BaseController != null)
+        {
+            Character_BaseController.CurrentShieldsProp = CurrentShields;
+        }
     }
 
     private void InitFields()
@@ -1173,7 +1287,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         Position = new Vector3();
         Rotation = Quaternion.Identity;
         Velocity = new Vector3();
-        AimDirection = new Vector3(0.70707911253f, 0.707134246826f, 0.000504541851114f); // Look kinda forward instead of up
+        AimDirection =
+            new Vector3(0.70707911253f, 0.707134246826f, 0.000504541851114f); // Look kinda forward instead of up
         MovementState = 0x1000;
         MovementShortTime = Shard.CurrentShortTime;
 
@@ -1182,31 +1297,290 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         IsAirborne = false;
 
         StaticInfo = new StaticInfoData();
-        CharacterState = new CharacterStateData { State = CharacterStateData.CharacterStatus.Living, Time = Shard.CurrentTime };
-        HostilityInfo = new HostilityInfoData { Flags = 0 | HostilityInfoData.HostilityFlags.Faction, FactionId = 1 };
-        MaxShields = new MaxVital { Value = 0, Time = Shard.CurrentTime };
-        MaxHealth = new MaxVital { Value = 19192, Time = Shard.CurrentTime };
-        GibVisualsInfo = new GibVisuals { Id = 0, Time = Shard.CurrentTime };
-        ProcessDelay = new ProcessDelayData { Unk1 = 30721, Unk2 = 236 };
-        Emote = new EmoteData { Id = 0, Time = 0 };
-        DockedParams = new DockedParamsData { Unk1 = new EntityId { Backing = 0 }, Unk2 = Vector3.Zero, Unk3 = 0 };
-        AssetOverrides = new AssetOverridesField { Ids = Array.Empty<uint>() };
-        VisualOverrides = new VisualOverridesField { Data = Array.Empty<VisualOverridesData>() };
-        CurrentEquipment = new EquipmentData { };
+        CharacterState = new CharacterStateData
+        {
+            State = CharacterStateData.CharacterStatus.Living,
+            Time = Shard.CurrentTime
+        };
+        HostilityInfo = new HostilityInfoData
+        {
+            Flags = 0 | HostilityInfoData.HostilityFlags.Faction,
+            FactionId = 1
+        };
+        MaxShields = new MaxVital
+        {
+            Value = 0,
+            Time = Shard.CurrentTime
+        };
+        MaxHealth = new MaxVital
+        {
+            Value = 19192,
+            Time = Shard.CurrentTime
+        };
+        GibVisualsInfo = new GibVisuals
+        {
+            Id = 0,
+            Time = Shard.CurrentTime
+        };
+        ProcessDelay = new ProcessDelayData
+        {
+            Unk1 = 30721,
+            Unk2 = 236
+        };
+        Emote = new EmoteData
+        {
+            Id = 0,
+            Time = 0
+        };
+        DockedParams = new DockedParamsData
+        {
+            Unk1 = new EntityId
+            {
+                Backing = 0
+            },
+            Unk2 = Vector3.Zero,
+            Unk3 = 0
+        };
+        AssetOverrides = new AssetOverridesField
+        {
+            Ids = Array.Empty<uint>()
+        };
+        VisualOverrides = new VisualOverridesField
+        {
+            Data = Array.Empty<VisualOverridesData>()
+        };
+        CurrentEquipment = new EquipmentData
+        {
+        };
         CharacterStats = new CharacterStatsData
         {
             ItemAttributes = new StatsData[]
             {
-                new() { Id = 5, Value = 156.414169f }, new() { Id = 6, Value = 1037.8347f }, new() { Id = 7, Value = 177.44128f }, new() { Id = 12, Value = 16.250000f }, new() { Id = 35, Value = 300 },
-                new() { Id = 36, Value = 250 }, new() { Id = 37, Value = 2.092090f }, new() { Id = 142, Value = 12.55f }, new() { Id = 143, Value = 1136 }, new() { Id = 144, Value = 18.433180f },
-                new() { Id = 173, Value = 10 }, new() { Id = 186, Value = 11.40f }, new() { Id = 959, Value = 1 }, new() { Id = 1050, Value = 34.5f }, new() { Id = 1051, Value = 13.824884f },
-                new() { Id = 1052, Value = 5.5f }, new() { Id = 1121, Value = 150 }, new() { Id = 1146, Value = 10.0f }, new() { Id = 1367, Value = 85 }, new() { Id = 1368, Value = 100 },
-                new() { Id = 1370, Value = 65 }, new() { Id = 1371, Value = 120 }, new() { Id = 1372, Value = 140 }, new() { Id = 1377, Value = 140.531250f }, new() { Id = 1395, Value = 75 },
-                new() { Id = 1419, Value = 32.769249f }, new() { Id = 1420, Value = 16901.744141f }, new() { Id = 1439, Value = 15279.667969f }, new() { Id = 1451, Value = 681 },
-                new() { Id = 1583, Value = 1 }, new() { Id = 1620, Value = 5049.767090f }, new() { Id = 1622, Value = 8 }, new() { Id = 1733, Value = 1.800000f }, new() { Id = 1736, Value = 60 },
-                new() { Id = 1737, Value = 5486.919434f }, new() { Id = 1746, Value = 9.320923f }, new() { Id = 1785, Value = 1.084000f }, new() { Id = 1835, Value = 5932.512207f },
-                new() { Id = 1904, Value = 4 }, new() { Id = 1905, Value = 2 }, new() { Id = 1987, Value = 8 }, new() { Id = 2034, Value = 22 }, new() { Id = 2037, Value = 9887.518555f },
-                new() { Id = 2039, Value = 9 }, new() { Id = 2042, Value = 12.252850f }
+                new()
+                {
+                    Id = 5,
+                    Value = 156.414169f
+                },
+                new()
+                {
+                    Id = 6,
+                    Value = 1037.8347f
+                },
+                new()
+                {
+                    Id = 7,
+                    Value = 177.44128f
+                },
+                new()
+                {
+                    Id = 12,
+                    Value = 16.250000f
+                },
+                new()
+                {
+                    Id = 35,
+                    Value = 300
+                },
+                new()
+                {
+                    Id = 36,
+                    Value = 250
+                },
+                new()
+                {
+                    Id = 37,
+                    Value = 2.092090f
+                },
+                new()
+                {
+                    Id = 142,
+                    Value = 12.55f
+                },
+                new()
+                {
+                    Id = 143,
+                    Value = 1136
+                },
+                new()
+                {
+                    Id = 144,
+                    Value = 18.433180f
+                },
+                new()
+                {
+                    Id = 173,
+                    Value = 10
+                },
+                new()
+                {
+                    Id = 186,
+                    Value = 11.40f
+                },
+                new()
+                {
+                    Id = 959,
+                    Value = 1
+                },
+                new()
+                {
+                    Id = 1050,
+                    Value = 34.5f
+                },
+                new()
+                {
+                    Id = 1051,
+                    Value = 13.824884f
+                },
+                new()
+                {
+                    Id = 1052,
+                    Value = 5.5f
+                },
+                new()
+                {
+                    Id = 1121,
+                    Value = 150
+                },
+                new()
+                {
+                    Id = 1146,
+                    Value = 10.0f
+                },
+                new()
+                {
+                    Id = 1367,
+                    Value = 85
+                },
+                new()
+                {
+                    Id = 1368,
+                    Value = 100
+                },
+                new()
+                {
+                    Id = 1370,
+                    Value = 65
+                },
+                new()
+                {
+                    Id = 1371,
+                    Value = 120
+                },
+                new()
+                {
+                    Id = 1372,
+                    Value = 140
+                },
+                new()
+                {
+                    Id = 1377,
+                    Value = 140.531250f
+                },
+                new()
+                {
+                    Id = 1395,
+                    Value = 75
+                },
+                new()
+                {
+                    Id = 1419,
+                    Value = 32.769249f
+                },
+                new()
+                {
+                    Id = 1420,
+                    Value = 16901.744141f
+                },
+                new()
+                {
+                    Id = 1439,
+                    Value = 15279.667969f
+                },
+                new()
+                {
+                    Id = 1451,
+                    Value = 681
+                },
+                new()
+                {
+                    Id = 1583,
+                    Value = 1
+                },
+                new()
+                {
+                    Id = 1620,
+                    Value = 5049.767090f
+                },
+                new()
+                {
+                    Id = 1622,
+                    Value = 8
+                },
+                new()
+                {
+                    Id = 1733,
+                    Value = 1.800000f
+                },
+                new()
+                {
+                    Id = 1736,
+                    Value = 60
+                },
+                new()
+                {
+                    Id = 1737,
+                    Value = 5486.919434f
+                },
+                new()
+                {
+                    Id = 1746,
+                    Value = 9.320923f
+                },
+                new()
+                {
+                    Id = 1785,
+                    Value = 1.084000f
+                },
+                new()
+                {
+                    Id = 1835,
+                    Value = 5932.512207f
+                },
+                new()
+                {
+                    Id = 1904,
+                    Value = 4
+                },
+                new()
+                {
+                    Id = 1905,
+                    Value = 2
+                },
+                new()
+                {
+                    Id = 1987,
+                    Value = 8
+                },
+                new()
+                {
+                    Id = 2034,
+                    Value = 22
+                },
+                new()
+                {
+                    Id = 2037,
+                    Value = 9887.518555f
+                },
+                new()
+                {
+                    Id = 2039,
+                    Value = 9
+                },
+                new()
+                {
+                    Id = 2042,
+                    Value = 12.252850f
+                }
             },
             Unk1 = 0,
             WeaponA = Array.Empty<StatsData>(),
@@ -1217,8 +1591,18 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             AttributeCategories2 = Array.Empty<StatsData>()
         };
 
-        EnergyParams = new EnergyParamsData { Max = 1000.0f, Delay = 500, Recharge = 156.0f, Time = Shard.CurrentTime };
-        ScopeBubble = new ScopeBubbleInfoData { Layer = 0, Unk2 = 0 };
+        EnergyParams = new EnergyParamsData
+        {
+            Max = 1000.0f,
+            Delay = 500,
+            Recharge = 156.0f,
+            Time = Shard.CurrentTime
+        };
+        ScopeBubble = new ScopeBubbleInfoData
+        {
+            Layer = 0,
+            Unk2 = 0
+        };
         SpawnPose = new CharacterSpawnPose
         {
             Time = Shard.CurrentTime,
@@ -1236,9 +1620,23 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         };
 
         EffectsFlags = 0;
-        FireMode_0 = new FireModeData { Mode = 0, Time = Shard.CurrentTime };
-        FireMode_1 = new FireModeData { Mode = 0, Time = Shard.CurrentTime };
-        WeaponIndex = new WeaponIndexData { Index = 0, Unk1 = 1, Unk2 = 0, Time = Shard.CurrentTime };
+        FireMode_0 = new FireModeData
+        {
+            Mode = 0,
+            Time = Shard.CurrentTime
+        };
+        FireMode_1 = new FireModeData
+        {
+            Mode = 0,
+            Time = Shard.CurrentTime
+        };
+        WeaponIndex = new WeaponIndexData
+        {
+            Index = 0,
+            Unk1 = 1,
+            Unk2 = 0,
+            Time = Shard.CurrentTime
+        };
 
         PermissionFlags = new PermissionFlagsData
         {
@@ -1291,7 +1689,10 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             LookAtTargetProp = null,
             ZoneUnlocksProp = 0,
             RegionUnlocksProp = 0,
-            ChatPartyLeaderIdProp = new EntityId { Backing = 0 },
+            ChatPartyLeaderIdProp = new EntityId
+            {
+                Backing = 0
+            },
             ScopeBubbleInfoProp = ScopeBubble,
             CarryableObjects_0Prop = null,
             CarryableObjects_1Prop = null,
@@ -1299,45 +1700,140 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             CachedAssetsProp = null,
             RespawnTimesProp = null,
             ProgressionXpProp = 0,
-            PermanentStatusEffectsProp = new PermanentStatusEffectsData { Effects = Array.Empty<PermanentStatusEffectsInnerData>() },
-            XpBoostModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            XpPermanentModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            XpZoneModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            XpVipModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            XpEventModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            ResourceBoostModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            ResourcePermanentModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            ResourceZoneModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            ResourceVipModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            ResourceEventModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            MoneyBoostModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            MoneyPermanentModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            MoneyZoneModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            MoneyVipModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            MoneyEventModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            ReputationBoostModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            ReputationPermanentModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            ReputationZoneModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            ReputationVipModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            ReputationEventModifierProp = new StatModifierData { ModifierId = 0, StatValue = 0.0f },
-            WalletProp = new WalletData { Beans = 999, Epoch = 1462889864 },
-            LoyaltyProp = new LoyaltyData { Current = 0, Lifetime = 0, Tier = 0 },
+            PermanentStatusEffectsProp = new PermanentStatusEffectsData
+            {
+                Effects = Array.Empty<PermanentStatusEffectsInnerData>()
+            },
+            XpBoostModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            XpPermanentModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            XpZoneModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            XpVipModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            XpEventModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            ResourceBoostModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            ResourcePermanentModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            ResourceZoneModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            ResourceVipModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            ResourceEventModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            MoneyBoostModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            MoneyPermanentModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            MoneyZoneModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            MoneyVipModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            MoneyEventModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            ReputationBoostModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            ReputationPermanentModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            ReputationZoneModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            ReputationVipModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            ReputationEventModifierProp = new StatModifierData
+            {
+                ModifierId = 0,
+                StatValue = 0.0f
+            },
+            WalletProp = new WalletData
+            {
+                Beans = 999,
+                Epoch = 1462889864
+            },
+            LoyaltyProp = new LoyaltyData
+            {
+                Current = 0,
+                Lifetime = 0,
+                Tier = 0
+            },
             LevelProp = HardcodedCharacterData.Level,
             EffectiveLevelProp = HardcodedCharacterData.EffectiveLevel,
             LevelResetCountProp = 0,
-            OldestDeployablesProp = new OldestDeployablesField { Data = Array.Empty<OldestDeployablesData>() },
+            OldestDeployablesProp = new OldestDeployablesField
+            {
+                Data = Array.Empty<OldestDeployablesData>()
+            },
             PerkRespecsProp = 0,
             ArcStatusProp = null,
             LeaveZoneTimeProp = null,
             ChatMuteStatusProp = 0,
             TimedDailyRewardProp = new TimedDailyRewardData
-                                {
-                                    Stage = 0,
-                                    State = 0,
-                                    RollNumber = 0,
-                                    MaxRolls = 0,
-                                    CountdownToTime = 0
-                                },
+            {
+                Stage = 0,
+                State = 0,
+                RollNumber = 0,
+                MaxRolls = 0,
+                CountdownToTime = 0
+            },
             TimedDailyRewardResultProp = null,
             SinCardTypeProp = 0,
             SinCardFields_0Prop = null,
@@ -1365,7 +1861,11 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             SinCardFields_22Prop = null,
             AssetOverridesProp = AssetOverrides,
             FriendCountProp = 0, // :'(
-            CAISStatusProp = new CAISStatusData { State = CAISStatusData.CAISState.None, Elapsed = 0 },
+            CAISStatusProp = new CAISStatusData
+            {
+                State = CAISStatusData.CAISState.None,
+                Elapsed = 0
+            },
             ScalingLevelProp = 0,
             PvPRankProp = 0,
             PvPRankPointsProp = 0,
@@ -1376,32 +1876,115 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
 
         Character_CombatController = new CombatController
         {
-            RunSpeedMultProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            FwdRunSpeedMultProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            JumpHeightMultProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            AirControlMultProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            ThrustStrengthMultProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            ThrustAirControlProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            FrictionProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            AmmoConsumptionProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            MaxTurnRateProp = new StatMultiplierData { Value = 0f, Time = Shard.CurrentTime },
-            TurnSpeedProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            TimeDilationProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            FireRateModifierProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            AccuracyModifierProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            GravityMultProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            AirResistanceMultProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            WeaponChargeupModProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
-            WeaponDamageDealtModProp = new StatMultiplierData { Value = 1.0f, Time = Shard.CurrentTime },
+            RunSpeedMultProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            FwdRunSpeedMultProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            JumpHeightMultProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            AirControlMultProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            ThrustStrengthMultProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            ThrustAirControlProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            FrictionProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            AmmoConsumptionProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            MaxTurnRateProp = new StatMultiplierData
+            {
+                Value = 0f,
+                Time = Shard.CurrentTime
+            },
+            TurnSpeedProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            TimeDilationProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            FireRateModifierProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            AccuracyModifierProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            GravityMultProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            AirResistanceMultProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            WeaponChargeupModProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
+            WeaponDamageDealtModProp = new StatMultiplierData
+            {
+                Value = 1.0f,
+                Time = Shard.CurrentTime
+            },
             FireMode_0Prop = FireMode_0,
             FireMode_1Prop = FireMode_1,
             WeaponIndexProp = WeaponIndex,
-            WeaponFireBaseTimeProp = new WeaponFireBaseTimeData { ChangeTime = 0, Unk = 0 },
+            WeaponFireBaseTimeProp = new WeaponFireBaseTimeData
+            {
+                ChangeTime = 0,
+                Unk = 0
+            },
             WeaponAgilityModProp = 1.0f,
-            CombatFlagsProp = new CombatFlagsData { Value = 0, Time = Shard.CurrentTime },
+            CombatFlagsProp = new CombatFlagsData
+            {
+                Value = 0,
+                Time = Shard.CurrentTime
+            },
             PermissionFlagsProp = PermissionFlags,
-            NemesesProp = new NemesesData { Values = Array.Empty<ulong>() },
-            SuperChargeProp = new SuperChargeData { Value = 100, Op = 0 }
+            NemesesProp = new NemesesData
+            {
+                Values = Array.Empty<ulong>()
+            },
+            SuperChargeProp = new SuperChargeData
+            {
+                Value = 100,
+                Op = 0
+            }
         };
         Character_MissionAndMarkerController = new MissionAndMarkerController();
         Character_LocalEffectsController = new LocalEffectsController();
@@ -1480,8 +2063,15 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             FireMode_1Prop = FireMode_1,
             WeaponIndexProp = WeaponIndex,
             WeaponAgilityModProp = 1.0f,
-            CombatFlagsProp = new CombatFlagsData { Value = 0, Time = Shard.CurrentTime },
-            MimicParentProp = new EntityId { Backing = 0 },
+            CombatFlagsProp = new CombatFlagsData
+            {
+                Value = 0,
+                Time = Shard.CurrentTime
+            },
+            MimicParentProp = new EntityId
+            {
+                Backing = 0
+            },
             MimicOffsetProp = Vector3.Zero,
 
             ClipEmptyBeginProp = Shard.CurrentTime,
@@ -1539,13 +2129,17 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             var sourceTime = GetType().GetProperty($"StatusEffectsChangeTime_{i}").GetValue(this);
             var sourceData = GetType().GetProperty($"StatusEffects_{i}").GetValue(this);
 
-            Character_CombatView.GetType().GetProperty($"StatusEffectsChangeTime_{i}Prop").SetValue(Character_CombatView, sourceTime, null);
-            Character_CombatView.GetType().GetProperty($"StatusEffects_{i}Prop").SetValue(Character_CombatView, sourceData, null);
+            Character_CombatView.GetType().GetProperty($"StatusEffectsChangeTime_{i}Prop")
+                                .SetValue(Character_CombatView, sourceTime, null);
+            Character_CombatView.GetType().GetProperty($"StatusEffects_{i}Prop")
+                                .SetValue(Character_CombatView, sourceData, null);
 
             if (Character_CombatController != null)
             {
-                Character_CombatController.GetType().GetProperty($"StatusEffectsChangeTime_{i}Prop").SetValue(Character_CombatController, sourceTime, null);
-                Character_CombatController.GetType().GetProperty($"StatusEffects_{i}Prop").SetValue(Character_CombatController, sourceData, null);
+                Character_CombatController.GetType().GetProperty($"StatusEffectsChangeTime_{i}Prop")
+                                          .SetValue(Character_CombatController, sourceTime, null);
+                Character_CombatController.GetType().GetProperty($"StatusEffects_{i}Prop")
+                                          .SetValue(Character_CombatController, sourceData, null);
             }
         }
     }
@@ -1553,14 +2147,14 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     private ulong GetCurrentPermissionsValue()
     {
         ulong result = 0ul;
-        foreach(var pair in CurrentPermissions)
+        foreach (var pair in CurrentPermissions)
         {
             if (pair.Value)
             {
                 result += (ulong)pair.Key;
             }
         }
-        
+
         return result;
     }
 

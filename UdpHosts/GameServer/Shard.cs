@@ -11,7 +11,9 @@ using GameServer.Entities;
 using GameServer.Entities.Outpost;
 using GameServer.Physics;
 using GameServer.Systems.Chat;
+using GameServer.Systems.Combat;
 using GameServer.Systems.Encounters;
+using GameServer.Systems.ProjectileSim;
 using Shared.Common;
 using Shared.Udp;
 
@@ -58,6 +60,7 @@ public class Shard : IShard
     public WeaponSim WeaponSim { get; private set; } = null!;
     public ChatService Chat { get; private set; } = null!;
     public AdminService Admin { get; private set; } = null!;
+    public CombatSim CombatSim { get; private set; } = null!;
     public ulong InstanceId { get; }
     public uint ZoneId { get; private set; }
     public ulong CurrentTimeLong { get; private set; }
@@ -68,7 +71,7 @@ public class Shard : IShard
     public GameServerSettings Settings { get; }
     private IPacketSender Sender { get; }
 
-    public void SetSystems(PhysicsEngine physics, MovementRelay movement, AbilitySystem abilities, EntityManager entityMan, EncounterManager encounterMan, WeaponSim weaponSim, ProjectileSim projectileSim, ChatService chat, AdminService admin)
+    public void SetSystems(PhysicsEngine physics, MovementRelay movement, AbilitySystem abilities, EntityManager entityMan, EncounterManager encounterMan, WeaponSim weaponSim, ProjectileSim projectileSim, ChatService chat, AdminService admin, CombatSim combatSim)
     {
         Physics = physics;
         Movement = movement;
@@ -79,6 +82,7 @@ public class Shard : IShard
         ProjectileSim = projectileSim;
         Chat = chat;
         Admin = admin;
+        CombatSim = combatSim;
     }
 
     public void Run(CancellationToken ct)

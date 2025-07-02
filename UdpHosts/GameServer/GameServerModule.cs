@@ -4,7 +4,9 @@ using AutofacSerilogIntegration;
 using GameServer.Aptitude;
 using GameServer.Physics;
 using GameServer.Systems.Chat;
+using GameServer.Systems.Combat;
 using GameServer.Systems.Encounters;
+using GameServer.Systems.ProjectileSim;
 using Serilog;
 using Shared.Common;
 using Shared.Udp;
@@ -38,6 +40,7 @@ public class GameServerModule : Module
         builder.RegisterType<ProjectileSim>();
         builder.RegisterType<ChatService>();
         builder.RegisterType<AdminService>();
+        builder.RegisterType<CombatSim>();
     }
 
     private static void RegisterInstances(ContainerBuilder builder)

@@ -6,6 +6,7 @@ namespace GameServer.Systems.Chat;
 public abstract class ChatCommand
 {
     public abstract void Execute(string[] parameters, ChatCommandContext context);
+
     public virtual void SourceFeedback(string message, ChatCommandContext context)
     {
         Console.WriteLine(message);

@@ -30,9 +30,9 @@ internal class GameServer : PacketServer
     private byte _nextShardId;
 
     public GameServer(GameServerSettings serverSettings,
-                      ILogger logger,
-                      SDB sdb,
-                      IShardFactory shardFactory)
+        ILogger logger,
+        SDB sdb,
+        IShardFactory shardFactory)
         : base(serverSettings.Port, logger)
     {
         _clientMap = new ConcurrentDictionary<uint, INetworkPlayer>();

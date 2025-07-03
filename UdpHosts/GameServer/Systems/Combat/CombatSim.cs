@@ -1,10 +1,12 @@
 using AeroMessages.Common;
 using AeroMessages.GSS.V66;
+using AeroMessages.GSS.V66.Character;
 using AeroMessages.GSS.V66.Character.Event;
 using GameServer.Entities;
 using GameServer.Entities.Character;
 using GameServer.Entities.Deployable;
 using Serilog;
+using SharpCompress.Factories;
 
 namespace GameServer.Systems.Combat;
 
@@ -29,11 +31,52 @@ public class CombatSim
             return;
         }
 
+        bool killed = false;
+
         // Deal damage
         if (target is CharacterEntity targetCharacter)
         {
+            bool wasAlive = (targetCharacter.CharacterState.State == CharacterStateData.CharacterStatus.Living || targetCharacter.CharacterState.State == CharacterStateData.CharacterStatus.Incapacitated) && targetCharacter.CurrentHealth > 0;
+
+            if (!wasAlive)
+            {
+                _logger.Debug("Ignoring TookWeaponHit because target character is not alive");
+                return;
+            }
+
             var newHealth = targetCharacter.CurrentHealth - damage;
             targetCharacter.SetCurrentHealth(newHealth);
+
+            if (targetCharacter.CurrentHealth == 0)
+            {
+                // TODO: Hand over to gamemode logic?
+                if (targetCharacter.IsPlayerControlled)
+                {
+                    if (targetCharacter.CharacterState.State == CharacterStateData.CharacterStatus.Living)
+                    {
+                        targetCharacter.SetCharacterState(CharacterStateData.CharacterStatus.Incapacitated, _shard.CurrentTime);
+                        targetCharacter.SetCurrentHealth(1000); // FIXME: Bleed out health calc?
+
+                        // TODO: On Downed Handler/Event
+                    }
+                    else if (targetCharacter.CharacterState.State == CharacterStateData.CharacterStatus.Incapacitated)
+                    {
+                        targetCharacter.SetCharacterState(CharacterStateData.CharacterStatus.Dead, _shard.CurrentTime);
+
+                        // TODO: Trigger respawn timer
+                        // TODO: On Dead Handler/Event
+                    }
+                }
+                else
+                {
+                    targetCharacter.SetCharacterState(CharacterStateData.CharacterStatus.Dead, _shard.CurrentTime);
+
+                    // TODO: NPC On Dead Handler/Event
+                }
+            }
+
+            bool stillAlive = (targetCharacter.CharacterState.State == CharacterStateData.CharacterStatus.Living || targetCharacter.CharacterState.State == CharacterStateData.CharacterStatus.Incapacitated) && targetCharacter.CurrentHealth > 0;
+            killed = wasAlive && !stillAlive;
         }
 
         // Build feedback
@@ -53,11 +96,11 @@ public class CombatSim
         {
             var player = sourceCharacter.Player;
             player.NetChannels[ChannelType.ReliableGss].SendMessage(new DealtHit
-                {
-                    HaveDamage = 1,
-                    DamageData = damageData,
-                    DamageFlags = damageFlags,
-                },
+            {
+                HaveDamage = 1,
+                DamageData = damageData,
+                DamageFlags = damageFlags,
+            },
                 sourceCharacter.EntityId);
         }
 

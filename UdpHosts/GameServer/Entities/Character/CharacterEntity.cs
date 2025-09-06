@@ -34,7 +34,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     {
         AeroEntityId = new EntityId()
         {
-            Backing = EntityId, ControllerId = Controller.Character
+            Backing = EntityId,
+            ControllerId = Controller.Character
         };
 
         CurrentStatModifiers = new Dictionary<StatModifierIdentifier, Dictionary<uint, ActiveStatModifier>>();
@@ -129,7 +130,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
                 PermissionFlagsData.CharacterPermissionFlags.unk_14, true
             },
             {
-                PermissionFlagsData.CharacterPermissionFlags.unk_15, true
+                PermissionFlagsData.CharacterPermissionFlags.spectate_input, true
             },
             {
                 PermissionFlagsData.CharacterPermissionFlags.new_character, false
@@ -685,7 +686,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         {
             StatMultiplierData value = new()
             {
-                Value = GetCurrentStatModifierValue(stat), Time = Shard.CurrentTime,
+                Value = GetCurrentStatModifierValue(stat),
+                Time = Shard.CurrentTime,
             };
 
             Console.WriteLine($"StatModifier {stat} set to {value.Value}");
@@ -846,7 +848,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     {
         CharacterState = new CharacterStateData
         {
-            State = characterStatus, Time = time
+            State = characterStatus,
+            Time = time
         };
         Character_ObserverView.CharacterStateProp = CharacterState;
         if (Character_BaseController != null)
@@ -1013,7 +1016,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         CurrentPermissions[flag] = value;
         PermissionFlags = new PermissionFlagsData
         {
-            Time = Shard.CurrentTime, Value = (PermissionFlagsData.CharacterPermissionFlags)GetCurrentPermissionsValue(),
+            Time = Shard.CurrentTime,
+            Value = (PermissionFlagsData.CharacterPermissionFlags)GetCurrentPermissionsValue(),
         };
 
         if (Character_CombatController != null)
@@ -1170,7 +1174,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
 
         var state = new MapMarkerState
         {
-            EncounterId = data.EncounterId, EncounterMarkerId = data.EncounterMarkerId,
+            EncounterId = data.EncounterId,
+            EncounterMarkerId = data.EncounterMarkerId,
         };
 
         MapMarkers[firstFreeIndex] = state;
@@ -1314,7 +1319,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     {
         MaxHealth = new()
         {
-            Value = newValue, Time = Shard.CurrentTime,
+            Value = newValue,
+            Time = Shard.CurrentTime,
         };
 
         if (Character_ObserverView != null)
@@ -1341,7 +1347,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     {
         MaxShields = new()
         {
-            Value = newValue, Time = Shard.CurrentTime,
+            Value = newValue,
+            Time = Shard.CurrentTime,
         };
 
         if (Character_BaseController != null)
@@ -1401,25 +1408,30 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         StaticInfo = new StaticInfoData();
         CharacterState = new CharacterStateData
         {
-            State = CharacterStateData.CharacterStatus.Living, Time = Shard.CurrentTime
+            State = CharacterStateData.CharacterStatus.Living,
+            Time = Shard.CurrentTime
         };
         HostilityInfo = new HostilityInfoData
         {
-            Flags = 0 | HostilityInfoData.HostilityFlags.Faction, FactionId = 1
+            Flags = 0 | HostilityInfoData.HostilityFlags.Faction,
+            FactionId = 1
         };
         SetMaxShields(0, true);
         SetMaxHealth(19192, true);
         GibVisualsInfo = new GibVisuals
         {
-            Id = 0, Time = Shard.CurrentTime
+            Id = 0,
+            Time = Shard.CurrentTime
         };
         ProcessDelay = new ProcessDelayData
         {
-            Unk1 = 30721, Unk2 = 236
+            Unk1 = 30721,
+            Unk2 = 236
         };
         Emote = new EmoteData
         {
-            Id = 0, Time = 0
+            Id = 0,
+            Time = 0
         };
         DockedParams = new DockedParamsData
         {
@@ -1644,7 +1656,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         };
         ScopeBubble = new ScopeBubbleInfoData
         {
-            Layer = 0, Unk2 = 0
+            Layer = 0,
+            Unk2 = 0
         };
         SpawnPose = new CharacterSpawnPose
         {
@@ -1665,11 +1678,13 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         EffectsFlags = 0;
         FireMode_0 = new FireModeData
         {
-            Mode = 0, Time = Shard.CurrentTime
+            Mode = 0,
+            Time = Shard.CurrentTime
         };
         FireMode_1 = new FireModeData
         {
-            Mode = 0, Time = Shard.CurrentTime
+            Mode = 0,
+            Time = Shard.CurrentTime
         };
         WeaponIndex = new WeaponIndexData
         {
@@ -1681,7 +1696,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
 
         PermissionFlags = new PermissionFlagsData
         {
-            Time = Shard.CurrentTime, Value = (PermissionFlagsData.CharacterPermissionFlags)GetCurrentPermissionsValue(),
+            Time = Shard.CurrentTime,
+            Value = (PermissionFlagsData.CharacterPermissionFlags)GetCurrentPermissionsValue(),
         };
     }
 
@@ -1746,87 +1762,108 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             },
             XpBoostModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             XpPermanentModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             XpZoneModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             XpVipModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             XpEventModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             ResourceBoostModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             ResourcePermanentModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             ResourceZoneModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             ResourceVipModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             ResourceEventModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             MoneyBoostModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             MoneyPermanentModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             MoneyZoneModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             MoneyVipModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             MoneyEventModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             ReputationBoostModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             ReputationPermanentModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             ReputationZoneModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             ReputationVipModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             ReputationEventModifierProp = new StatModifierData
             {
-                ModifierId = 0, StatValue = 0.0f
+                ModifierId = 0,
+                StatValue = 0.0f
             },
             WalletProp = new WalletData
             {
-                Beans = 999, Epoch = 1462889864
+                Beans = 999,
+                Epoch = 1462889864
             },
             LoyaltyProp = new LoyaltyData
             {
@@ -1882,7 +1919,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             FriendCountProp = 0, // :'(
             CAISStatusProp = new CAISStatusData
             {
-                State = CAISStatusData.CAISState.None, Elapsed = 0
+                State = CAISStatusData.CAISState.None,
+                Elapsed = 0
             },
             ScalingLevelProp = 0,
             PvPRankProp = 0,
@@ -1896,83 +1934,102 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         {
             RunSpeedMultProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             FwdRunSpeedMultProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             JumpHeightMultProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             AirControlMultProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             ThrustStrengthMultProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             ThrustAirControlProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             FrictionProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             AmmoConsumptionProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             MaxTurnRateProp = new StatMultiplierData
             {
-                Value = 0f, Time = Shard.CurrentTime
+                Value = 0f,
+                Time = Shard.CurrentTime
             },
             TurnSpeedProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             TimeDilationProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             FireRateModifierProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             AccuracyModifierProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             GravityMultProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             AirResistanceMultProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             WeaponChargeupModProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             WeaponDamageDealtModProp = new StatMultiplierData
             {
-                Value = 1.0f, Time = Shard.CurrentTime
+                Value = 1.0f,
+                Time = Shard.CurrentTime
             },
             FireMode_0Prop = FireMode_0,
             FireMode_1Prop = FireMode_1,
             WeaponIndexProp = WeaponIndex,
             WeaponFireBaseTimeProp = new WeaponFireBaseTimeData
             {
-                ChangeTime = 0, Unk = 0
+                ChangeTime = 0,
+                Unk = 0
             },
             WeaponAgilityModProp = 1.0f,
             CombatFlagsProp = new CombatFlagsData
             {
-                Value = 0, Time = Shard.CurrentTime
+                Value = 0,
+                Time = Shard.CurrentTime
             },
             PermissionFlagsProp = PermissionFlags,
             NemesesProp = new NemesesData
@@ -1981,7 +2038,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             },
             SuperChargeProp = new SuperChargeData
             {
-                Value = 100, Op = 0
+                Value = 100,
+                Op = 0
             }
         };
         Character_MissionAndMarkerController = new MissionAndMarkerController();
@@ -2063,7 +2121,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             WeaponAgilityModProp = 1.0f,
             CombatFlagsProp = new CombatFlagsData
             {
-                Value = 0, Time = Shard.CurrentTime
+                Value = 0,
+                Time = Shard.CurrentTime
             },
             MimicParentProp = new EntityId
             {

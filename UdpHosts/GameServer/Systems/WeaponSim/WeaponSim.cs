@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text.Json;
 using System.Threading;
+using AeroMessages.GSS.V66.Character.Event;
 using AeroMessages.GSS.V66.Generic;
 using GameServer.Data.SDB;
 using GameServer.Entities;
@@ -40,7 +41,7 @@ public class WeaponSim
         }
     }
 
-    public void OnFireWeaponProjectile(CharacterEntity entity, uint time, Vector3 localAimDir)
+    public void OnFireWeaponProjectile(CharacterEntity entity, uint time, Vector3 localAimDir, Vector3 localShooterVelocity)
     {
         // Weapon
         var activeWeaponDetails = entity.GetActiveWeaponDetails();
@@ -76,7 +77,7 @@ public class WeaponSim
 
         // Ammo
         var ammo = SDBInterface.GetAmmo(weapon.AmmoId); // TODO: Handle ammo overrides
-        
+
         // Projectile origin
         var origin = entity.GetProjectileOrigin(localAimDir);
 
@@ -103,7 +104,7 @@ public class WeaponSim
             uint lastSpreadTime = weaponSimState.LastSpreadTime;
             PRNG.Spread(time, weapon.SlotIndex, round, aimForward, aimRight, aimUp, spreadPct, lastSpreadDirection, lastSpreadTime, out Vector3 direction);
             uint trace = PRNG.Trace(time, round);
-            _shard.ProjectileSim.FireProjectile(entity, trace, origin, direction, ammo);
+            _shard.ProjectileSim.FireProjectile(entity, trace, origin, direction, ammo, activeWeaponDetails);
             weaponSimState.LastSpreadDirection = direction;
             weaponSimState.LastSpreadTime = time;
         }
@@ -120,6 +121,14 @@ public class WeaponSim
 
         weaponSimState.LastBurstTime = time;
         _weaponSimState[entity.EntityId] = weaponSimState;
+
+        _shard.EntityMan.SendToScoped(entity, new WeaponProjectileFired
+        {
+            ShortTime = (ushort)time,
+            Aim = localAimDir,
+            HaveMoreData = localShooterVelocity == Vector3.Zero ? (byte)0 : (byte)1,
+            MoreData = localShooterVelocity
+        });
     }
 
     private float GetCurrentSpreadPct(CharacterEntity entity, WeaponTemplateResult weapon, WeaponSimState weaponSimState, float weaponSpreadFactor, uint time)

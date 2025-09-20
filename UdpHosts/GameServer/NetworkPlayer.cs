@@ -287,9 +287,18 @@ public class NetworkPlayer : NetworkClient, INetworkPlayer
         return closestOutpostId;
     }
 
-    public void HandleFireWeaponProjectile(uint time, Vector3 aim)
+    public void HandleFireWeaponProjectile(uint time, Vector3 aim, Vector3 velocity)
     {
-        AssignedShard.WeaponSim.OnFireWeaponProjectile(CharacterEntity, time, aim);
+        // This command is called by the client not only when firing weapon projectiles, but also via FireProjectileCommand that can occur in abilities. The message doesn't make it clear, so I assume we must know.
+        if (CharacterEntity.IsFiringWeapon)
+        {
+            AssignedShard.WeaponSim.OnFireWeaponProjectile(CharacterEntity, time, aim, velocity);
+        }
+        else
+        {
+            // TODO: Maybe check a queue?
+            Log.Debug("Ignored FireWeaponProjectile because we are not firing our weapon. Received with time {time}", time);
+        }
     }
 
     public void EnterZone(Zone z, uint outpostId = 0)

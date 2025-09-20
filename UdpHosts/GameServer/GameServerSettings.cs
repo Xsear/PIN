@@ -23,7 +23,7 @@ public class GameServerSettings
     public string GrpcChannelAddress { get; set; } = "http://localhost:5201";
 
     /// <summary>
-    ///    File path to the clientdb.sd2 located in system\db\ of the Firefall installation
+    ///    File path to the clientdb.sd2 located in system\db folder of the Firefall installation
     /// </summary>
     public string StaticDBPath { get; set; } = @"C:\Program Files\Steam\steamapps\common\Firefall\system\db\clientdb.sd2";
 
@@ -46,4 +46,9 @@ public class GameServerSettings
     ///    Enable loading entities on zone startup
     /// </summary>
     public bool LoadZoneEntities { get; set; } = true;
+
+    /// <summary>
+    ///    File path to the system\assetdb folder of the Firefall installation
+    /// </summary>
+    public string AssetDBPath { get; set; } = @"C:\Program Files\Steam\steamapps\common\Firefall\system\assetdb";
 }

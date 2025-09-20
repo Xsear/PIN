@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Numerics;
 using AeroMessages.GSS.V66.Character;
 using AeroMessages.GSS.V66.Character.Command;
 using AeroMessages.GSS.V66.Character.Event;
@@ -40,17 +41,21 @@ public class CombatController : Base
     {
         var fireWeaponProjectile = packet.Unpack<FireWeaponProjectile>();
 
-        player.HandleFireWeaponProjectile(fireWeaponProjectile.Time, fireWeaponProjectile.AimDirection);
+        var velocity = fireWeaponProjectile.HaveShooterVelocity == 1 ? fireWeaponProjectile.ShooterVelocity : Vector3.Zero;
 
-        var weaponProjectileFired = new WeaponProjectileFired
-        {
-            ShortTime = (ushort)fireWeaponProjectile.Time,
-            Aim = fireWeaponProjectile.AimDirection,
-            HaveMoreData = fireWeaponProjectile.HaveShooterVelocity,
-            MoreData = fireWeaponProjectile.ShooterVelocity
-        };
+        player.HandleFireWeaponProjectile(fireWeaponProjectile.Time, fireWeaponProjectile.AimDirection, velocity);
+    }
 
-        client.NetChannels[ChannelType.ReliableGss].SendMessage(weaponProjectileFired, player.CharacterEntity.EntityId);
+    [MessageID((byte)Commands.ReportProjectileHit)]
+    public void ReportProjectileHit(INetworkClient client, IPlayer player, ulong entityId, GamePacket packet)
+    {
+        var query = packet.Unpack<ReportProjectileHit>();
+
+        var original = new sbyte[] { query.Unk3, query.Unk4, query.Unk5 };
+        var unpacked = Quantizer.UnpackSBytesToVector3(query.Unk3, query.Unk4, query.Unk5);
+
+        Console.WriteLine($"ReportProjectileHit Trace: {query.TraceRef} ShortTime: {query.ShortTime} Unk2: {query.Unk2} PhysicsMaterialId: {query.BodyPartHit} Unk6: {query.Unk6} | Original ({query.Unk3}, {query.Unk4}, {query.Unk5}) | Unpacked ({unpacked.X}, {unpacked.Y}, {unpacked.Z})");
+
     }
 
     [MessageID((byte)Commands.FireEnd)]

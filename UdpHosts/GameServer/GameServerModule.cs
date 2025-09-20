@@ -3,6 +3,7 @@ using Autofac;
 using AutofacSerilogIntegration;
 using GameServer.Aptitude;
 using GameServer.Physics;
+using GameServer.Physics.PoseLoader;
 using GameServer.Systems.Chat;
 using GameServer.Systems.Combat;
 using GameServer.Systems.Encounters;
@@ -41,6 +42,7 @@ public class GameServerModule : Module
         builder.RegisterType<ChatService>();
         builder.RegisterType<AdminService>();
         builder.RegisterType<CombatSim>();
+        builder.RegisterType<PoseLoader>().AsSelf().SingleInstance();
     }
 
     private static void RegisterInstances(ContainerBuilder builder)
@@ -106,7 +108,7 @@ public class GameServerModule : Module
             {
                 var loggerConfig = new LoggerConfiguration()
                     .ReadFrom.AppSettings()
-                    .WriteTo.Console(theme: SerilogTheme.Custom, outputTemplate: "[{Timestamp:HH:mm:ss.fff} {Level:u4} {SourceContext}] {Message:lj}{NewLine}{Exception}");
+                    .WriteTo.Console(theme: SerilogTheme.Custom, outputTemplate: "[{Timestamp:HH:mm:ss.fff} {Level:u5} {SourceContext}] {Message:lj}{NewLine}{Exception}");
 
                 var settings = ctx.Resolve<GameServerSettings>();
 
@@ -131,5 +133,15 @@ public class GameServerModule : Module
                 return sdb;
             })
             .As<SDB>().SingleInstance();
+
+        builder.Register(ctx =>
+        {
+            var settings = ctx.Resolve<GameServerSettings>();
+            var logger = ctx.Resolve<ILogger>().ForContext<PoseLoader>();
+
+            return new PoseLoader(settings.AssetDBPath, logger);
+        })
+        .AsSelf()
+        .SingleInstance();
     }
 }

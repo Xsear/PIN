@@ -81,6 +81,11 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         get => MovementStateContainer.Crouch;
     }
 
+    public bool IsFiringWeapon
+    {
+        get => Character_CombatView != null && (Character_CombatView.WeaponBurstFiredProp > Character_CombatView.WeaponBurstEndedProp);
+    }
+
     public Dictionary<PermissionFlagsData.CharacterPermissionFlags, bool> CurrentPermissions { get; set; } =
         new Dictionary<PermissionFlagsData.CharacterPermissionFlags, bool>()
         {

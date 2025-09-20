@@ -6,12 +6,13 @@ using GameServer.Entities;
 using GameServer.Entities.Character;
 using GameServer.Entities.Deployable;
 using Serilog;
-using SharpCompress.Factories;
 
 namespace GameServer.Systems.Combat;
 
 public class CombatSim
 {
+    private const uint _deadNpcLifetimeMs = 3000;
+
     private readonly IShard _shard;
     private readonly ILogger _logger;
     private readonly EntityManager _entityMan;
@@ -72,6 +73,7 @@ public class CombatSim
                     targetCharacter.SetCharacterState(CharacterStateData.CharacterStatus.Dead, _shard.CurrentTime);
 
                     // TODO: NPC On Dead Handler/Event
+                    _entityMan.SetRemainingLifetime(targetCharacter, _deadNpcLifetimeMs);
                 }
             }
 

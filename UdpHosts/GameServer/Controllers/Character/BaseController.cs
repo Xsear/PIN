@@ -168,7 +168,7 @@ public class BaseController : Base
         var setSteamIdPacket = packet.Unpack<SetSteamUserId>();
         player.SteamUserId = setSteamIdPacket.SteamUserId;
         _logger.Verbose("Entity {0:x8} Steam user id (Aero): {1}", entityId, player.SteamUserId);
-        
+
         // var conventional = packet.Read<SetSteamIdRequest>();
         // _logger.Verbose("Packet Data: {0}", BitConverter.ToString(packet.PacketData.ToArray()).Replace("-", " "));
         // _logger.Verbose("Entity {0:x8} Steam user id (conventional): {1}", entityId, conventional.SteamId);
@@ -196,7 +196,7 @@ public class BaseController : Base
         {
             return;
         }
-    
+
         var character = player.CharacterEntity;
         var abilities = client.AssignedShard.Abilities;
         abilities.HandleDeployableCalldownRequest(character.EntityId, deployableCalldownRequest);
@@ -210,7 +210,7 @@ public class BaseController : Base
         {
             return;
         }
-    
+
         var character = player.CharacterEntity;
         var abilities = client.AssignedShard.Abilities;
         abilities.HandleResourceNodeBeaconCalldownRequest(character.EntityId, thumperCalldownRequest);
@@ -434,7 +434,7 @@ public class BaseController : Base
             // Several UI components (like PaperdollSlotting) only refresh when ON_LEVEL_CHANGED fires.
             // Since we dont yet implement progression we just force an update here.
             if (player.CharacterEntity.Character_BaseController != null)
-            {   
+            {
                 player.CharacterEntity.Character_BaseController.LevelProp = HardcodedCharacterData.Level;
                 player.CharacterEntity.Character_BaseController.EffectiveLevelProp = HardcodedCharacterData.EffectiveLevel;
             }
@@ -454,36 +454,36 @@ public class BaseController : Base
     public void SlotGearRequest(INetworkClient client, IPlayer player, ulong entityId, GamePacket packet)
     {
         var request = packet.Unpack<SlotGearRequest>();
-        
+
         player.CharacterEntity.EquipItemByGUID(request.LoadoutId, (LoadoutSlotType)request.SlotIdx, request.ItemGUID);
 
         var response = new SlotGearResponse()
-                       {
-                           ItemGUID = request.ItemGUID,
-                           SlotIdx = request.SlotIdx,
-                           LoadoutId = request.LoadoutId,
-                           Unk1 = request.Unk,
-                           Result = 1,
-                       };
-        
+        {
+            ItemGUID = request.ItemGUID,
+            SlotIdx = request.SlotIdx,
+            LoadoutId = request.LoadoutId,
+            Unk1 = request.Unk,
+            Result = 1,
+        };
+
         client.NetChannels[ChannelType.ReliableGss].SendMessage(response, entityId);
     }
-    
+
     [MessageID((byte)Commands.SlotVisualRequest)]
     public void SlotVisualRequest(INetworkClient client, IPlayer player, ulong entityId, GamePacket packet)
     {
         var request = packet.Unpack<SlotVisualRequest>();
-        
+
         player.CharacterEntity.EquipVisualBySdbId(request.LoadoutId, (LoadoutVisualType)request.SlotIdx1, (LoadoutSlotType)request.SlotIdx2, request.ItemSdbId);
-        
+
         var response = new SlotVisualResponse()
-                       {
-                           ConfigId = 1,
-                           SlotIdx = request.SlotIdx2,
-                           LoadoutId = request.LoadoutId,
-                           Result = 1,
-                       };
-        
+        {
+            ConfigId = 1,
+            SlotIdx = request.SlotIdx2,
+            LoadoutId = request.LoadoutId,
+            Result = 1,
+        };
+
         client.NetChannels[ChannelType.ReliableGss].SendMessage(response, entityId);
     }
 
@@ -518,5 +518,13 @@ public class BaseController : Base
         }
 
         client.AssignedShard.EncounterMan.HandleUiQueryResponse(response, (INetworkPlayer)player);
+    }
+
+    [MessageID((byte)Commands.FlushCharacterCache)]
+    public void FlushCharacterCache(INetworkClient client, IPlayer player, ulong entityId, GamePacket packet)
+    {
+        var query = packet.Unpack<FlushCharacterCache>();
+
+        Console.WriteLine($"FlushCharacterCache all: {query.Unk1}, items: {query.Unk2}, xplevel: {query.Unk3}, faction_reputation: {query.Unk4}, mission: {query.Unk5}");
     }
 }

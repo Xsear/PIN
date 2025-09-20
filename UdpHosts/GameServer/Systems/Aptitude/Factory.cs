@@ -256,8 +256,8 @@ public class Factory
                 return new PeekTargetsCommand(SDBInterface.GetPeekTargetsCommandDef(commandId));
             case CommandType.RequirementServer:
                 return new RequirementServerCommand(SDBInterface.GetRequirementServerCommandDef(commandId));
-            // case CommandType.FireProjectile:
-            //     return new FireProjectileCommand(SDBInterface.GetFireProjectileCommandDef(commandId));
+            case CommandType.FireProjectile:
+                return new FireProjectileCommand(SDBInterface.GetFireProjectileCommandDef(commandId));
             case CommandType.ApplyFreeze:
                 return new ApplyFreezeCommand(SDBInterface.GetApplyFreezeCommandDef(commandId));
             // case CommandType.ClimbLedge:
@@ -741,15 +741,15 @@ public class Factory
             // case CommandType.DisableHealthAndIcon:
             //     return new DisableHealthAndIconCommand(SDBInterface.GetDisableHealthAndIconCommandDef(commandId));
             // case CommandType.AddInitiatorToStatusEffect:
-                // env `both`, but no such table in SDB?
+            // env `both`, but no such table in SDB?
             // case CommandType.RemoveInitiatorFromStatusEffect:
-                // env `both`, but no such table in SDB?
+            // env `both`, but no such table in SDB?
             // case CommandType.ForceRespawn:
             //     return new ForceRespawnCommand(CustomDBInterface.GetForceRespawnCommandDef(commandId));
             // case CommandType.ReduceCooldowns:
             //     return new ReduceCooldownsCommand(CustomDBInterface.GetReduceCooldownsCommandDef(commandId));
             // case CommandType.RequireArcActive:
-                // Zero instances in BaseCommandDef
+            // Zero instances in BaseCommandDef
             case CommandType.AttemptToCalldownVehicle:
                 return new AttemptToCalldownVehicleCommand(SDBInterface.GetAttemptToCalldownVehicleCommandDef(commandId));
             default:

@@ -126,8 +126,8 @@ public class WeaponSim
         {
             ShortTime = (ushort)time,
             Aim = localAimDir,
-            HaveMoreData = localShooterVelocity == Vector3.Zero ? (byte)0 : (byte)1,
-            MoreData = localShooterVelocity
+            HaveShooterVelocity = localShooterVelocity == Vector3.Zero ? (byte)0 : (byte)1,
+            ShooterVelocity = localShooterVelocity
         });
     }
 

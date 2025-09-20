@@ -35,8 +35,8 @@ public class FireProjectileCommand : Command, ICommand
             {
                 ShortTime = (ushort)time,
                 Aim = aim,
-                HaveMoreData = velocity == Vector3.Zero ? (byte)0 : (byte)1,
-                MoreData = velocity
+                HaveShooterVelocity = velocity == Vector3.Zero ? (byte)0 : (byte)1,
+                ShooterVelocity = velocity
             });
 
             context.Shard.EntityMan.SendToScoped(character, new AbilityProjectileFired
@@ -51,7 +51,7 @@ public class FireProjectileCommand : Command, ICommand
                 Unk3 = 0.0f,
                 Unk4 = 156,
                 Unk5 = 0,
-                Unk6 = 2,
+                Hardpoint = Params.Hardpoint,
                 UnkFlag = 0,
                 UnkFlaggedEntity = 0,
             });

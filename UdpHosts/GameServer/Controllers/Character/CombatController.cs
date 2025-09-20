@@ -50,12 +50,9 @@ public class CombatController : Base
     public void ReportProjectileHit(INetworkClient client, IPlayer player, ulong entityId, GamePacket packet)
     {
         var query = packet.Unpack<ReportProjectileHit>();
+        var unpacked = Quantizer.UnpackSBytesToVector3(query.QuantisedDirectionX, query.QuantisedDirectionY, query.QuantisedDirectionZ);
 
-        var original = new sbyte[] { query.Unk3, query.Unk4, query.Unk5 };
-        var unpacked = Quantizer.UnpackSBytesToVector3(query.Unk3, query.Unk4, query.Unk5);
-
-        Console.WriteLine($"ReportProjectileHit Trace: {query.TraceRef} ShortTime: {query.ShortTime} Unk2: {query.Unk2} PhysicsMaterialId: {query.BodyPartHit} Unk6: {query.Unk6} | Original ({query.Unk3}, {query.Unk4}, {query.Unk5}) | Unpacked ({unpacked.X}, {unpacked.Y}, {unpacked.Z})");
-
+        Console.WriteLine($"ReportProjectileHit Trace: {query.TraceRef} ShortTime: {query.ShortTime} Unk2: {query.Unk2} PhysicsMaterialId: {query.PhysicsMaterialId} Unk6: {query.Distance} | Original ({query.QuantisedDirectionX}, {query.QuantisedDirectionY}, {query.QuantisedDirectionZ}) | Unpacked ({unpacked.X}, {unpacked.Y}, {unpacked.Z})");
     }
 
     [MessageID((byte)Commands.FireEnd)]

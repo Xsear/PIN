@@ -1,0 +1,63 @@
+#nullable enable
+
+using System;
+using System.Globalization;
+using System.Linq;
+using System.Numerics;
+
+namespace GameServer.Physics.PoseLoader;
+
+public class PoseUtil
+{
+    public static Vector3 ParseVector3(string input)
+    {
+        var cleaned = input.Trim('<', '>', ' ');
+        var parts = cleaned.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length != 3)
+        {
+            throw new FormatException($"Invalid Vector3 format: {input}");
+        }
+
+        return new Vector3(
+            float.Parse(parts[0], CultureInfo.InvariantCulture),
+            float.Parse(parts[1], CultureInfo.InvariantCulture),
+            float.Parse(parts[2], CultureInfo.InvariantCulture));
+    }
+
+    public static Matrix3x3 ParseMatrix3x3(string input)
+    {
+        var vectors = input.Split(new[] { '>' }, StringSplitOptions.RemoveEmptyEntries)
+                           .Select(v => ParseVector3(v + ">")) // Add back '>' so it parses correctly
+                           .ToArray();
+
+        if (vectors.Length != 3)
+        {
+            throw new FormatException($"Invalid Matrix3x3 format: {input}");
+        }
+
+        return new Matrix3x3(vectors[0], vectors[1], vectors[2]);
+    }
+
+    public static float? TryParseFloat(string? input)
+    {
+        if (float.TryParse(input?.Trim('"'), NumberStyles.Float, CultureInfo.InvariantCulture, out var result))
+        {
+            return result;
+        }
+
+        return null;
+    }
+
+    public static int? TryParseInt(string? input)
+    {
+        if (int.TryParse(input?.Trim('"'), NumberStyles.Integer, CultureInfo.InvariantCulture, out var result))
+        {
+            return result;
+        }
+
+        return null;
+    }
+
+    public record Matrix3x3(Vector3 Row1, Vector3 Row2, Vector3 Row3);
+}

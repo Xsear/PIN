@@ -68,7 +68,8 @@ public class PoseLoader
 
         try
         {
-            result = PoseData.LoadFromFile(path); // Replace with your actual loading logic
+            var ini = IniLoader.LoadFromFile(path);
+            result = PoseData.LoadFromIni(ini);
             _dataCache[assetId] = result;
             _logger.Debug("Loaded pose from {Path}", path);
             return true;

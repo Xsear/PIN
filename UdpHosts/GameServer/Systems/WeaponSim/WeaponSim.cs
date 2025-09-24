@@ -113,7 +113,7 @@ public class WeaponSim
         if (weapon.SpreadRampTime != 0)
         {
             uint burstCost = weapon.MsPerBurst;
-            var update = System.Math.Min(weapon.SpreadRampTime, weaponSimState.AccumulatedSpreadTime + burstCost);
+            var update = Math.Min(weapon.SpreadRampTime, weaponSimState.AccumulatedSpreadTime + burstCost);
 
             // Console.WriteLine($"SpreadRampTime {weapon.SpreadRampTime}, AccumulatedSpreadTime: {weaponSimState.AccumulatedSpreadTime}, MsPerBurst: {weapon.MsPerBurst}, Setting AccumulatedSpreadTime To : {update}");
             weaponSimState.AccumulatedSpreadTime = update;
@@ -198,10 +198,10 @@ public class WeaponSim
             int timeCanReturn = (int)(currentTime - weaponSimState.LastBurstTime - weapon.MsSpreadReturnDelay);
             if (timeCanReturn > 0)
             {
-                uint returnedTime = (uint)System.Math.Min(weapon.MsSpreadReturn, timeCanReturn);
+                uint returnedTime = (uint)Math.Min(weapon.MsSpreadReturn, timeCanReturn);
                 float ratioToReturn = (float)returnedTime / weapon.MsSpreadReturn;
                 uint rampTimeToReturn = (uint)(weaponSimState.AccumulatedSpreadTime * ratioToReturn);
-                uint update = (uint)System.Math.Max(0, (int)weaponSimState.AccumulatedSpreadTime - rampTimeToReturn);
+                uint update = (uint)Math.Max(0, (int)weaponSimState.AccumulatedSpreadTime - rampTimeToReturn);
 
                 // Console.WriteLine($"returnedTime {returnedTime}, ratioToReturn: {ratioToReturn}, rampTimeToReturn: {rampTimeToReturn}, Setting AccumulatedSpreadTime To : {update}");
                 weaponSimState.AccumulatedSpreadTime = update;

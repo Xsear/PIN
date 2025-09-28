@@ -23,6 +23,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Lib\AeroMessages\AeroMessages\AeroMessages.csproj" />
     <ProjectReference Include="..\..\Lib\BepuPhysics2\BepuPhysics\BepuPhysics.csproj" />
+    <ProjectReference Include="..\..\Lib\BepuPhysics2\DemoUtilities\DemoUtilities.csproj" />
+    <ProjectReference Include="..\..\Lib\BepuPhysics2\DemoContentLoader\DemoContentLoader.csproj" />
     <ProjectReference Include="..\..\Lib\Bitter\Bitter\Bitter.csproj" />
     <ProjectReference Include="..\..\Lib\Core.Data\Core.Data.csproj" />
     <ProjectReference Include="..\..\Lib\Shared.Common\Shared.Common.csproj" />
@@ -40,4 +42,9 @@
   <Target Name="Create_App-config_from_App-Default-config" Condition="!Exists('App.config')" BeforeTargets="Build">
     <Copy SourceFiles="App.Default.config" DestinationFiles="App.config" />
   </Target>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Physics\DebugView\DemoRenderer.contentarchive" />
+    <EmbeddedResource Include="Physics\DebugView\Demos.contentarchive" />
+  </ItemGroup>
 </Project>

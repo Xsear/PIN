@@ -34,7 +34,6 @@ public abstract class Base
         {
             var tst = AeroRouting.GetNewMessageHandler(AeroMessageIdAttribute.MsgType.GSS, AeroMessageIdAttribute.MsgSrc.Command, msgId, (int)ControllerID);
 
-
             logger.Warning("---> Unhandled MsgID for GSS Packet; Controller = {0} Entity = 0x{1:X8} MsgID = {2}! {aeroTest}", ControllerID, entityId, msgId, tst);
             logger.Warning(">  {0}", BitConverter.ToString(packet.Peek(packet.BytesRemaining).ToArray()).Replace("-", " "));
             return;

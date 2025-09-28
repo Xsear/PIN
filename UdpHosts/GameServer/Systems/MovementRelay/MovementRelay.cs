@@ -24,6 +24,7 @@ public class MovementRelay
         var poseData = input.PoseData;
         var posRotState = poseData.PosRotState;
         character.SetPoseData(poseData, input.ShortTime);
+        character.SetHeading(input.HeadingYaw, input.HeadingPitch);
 
         bool sendJumpActioned = poseData.TimeSinceLastJump < character.TimeSinceLastJump; // Compare the old value before updating 
         character.TimeSinceLastJump = poseData.TimeSinceLastJump;
@@ -42,11 +43,11 @@ public class MovementRelay
                 MovementType = MovementDataType.PosRotState,
                 WaterLevelAndDesc = poseData.WaterLevelAndDesc,
                 PosRotState = new MovementPosRotState
-                            {
-                                Pos = character.Position,
-                                Rot = character.Rotation,
-                                MovementState = movementStateValue // ToDo: This was ushort previously!
-                            },
+                {
+                    Pos = character.Position,
+                    Rot = character.Rotation,
+                    MovementState = movementStateValue // ToDo: This was ushort previously!
+                },
                 Velocity = character.Velocity,
                 JetpackEnergy = poseData.JetpackEnergy,
                 GroundTimePositiveAirTimeNegative = poseData.GroundTimePositiveAirTimeNegative, // Somehow affects gravity
@@ -79,7 +80,7 @@ public class MovementRelay
                 {
                     remoteClient.NetChannels[ChannelType.UnreliableGss].SendMessage(new JumpActioned { ShortTime = input.ShortTime }, character.EntityId);
                 }
-    
+
                 remoteClient.NetChannels[ChannelType.UnreliableGss].SendMessage(currentPose, character.EntityId);
             }
         }
@@ -113,7 +114,7 @@ public class MovementRelay
                     GroundTimePositiveAirTimeNegative = 0,
                     TimeSinceLastJump = character.TimeSinceLastJump,
                     HaveDebugData = 0
-                } 
+                }
             });
         }
     }

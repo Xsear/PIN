@@ -7,7 +7,7 @@ using Records.apt;
 using Records.aptfs;
 using Records.dbcharacter;
 using Records.dbitems;
-using Records.dbviusalrecords;
+using Records.dbvisualrecords;
 using Records.vcs;
 
 public class SDBInterface
@@ -18,9 +18,12 @@ public class SDBInterface
     private static Dictionary<uint, Deployable> Deployable;
     private static Dictionary<uint, Monster> Monster;
     private static Dictionary<uint, Turret> Turret;
+    private static Dictionary<uint, PoseType> PoseType;
+    private static Dictionary<uint, CharInfo> CharInfo;
 
     // dbvisualrecords
     private static Dictionary<uint, WarpaintPalette> WarpaintPalettes;
+    private static Dictionary<uint, VisualRecord> VisualRecord;
 
     // dbitems
     private static Dictionary<uint, AttributeCategory> AttributeCategory;
@@ -39,6 +42,7 @@ public class SDBInterface
     private static Dictionary<uint, WeaponUnderbarrel> WeaponUnderbarrel;
     private static Dictionary<uint, Ammo> Ammo;
     private static Dictionary<uint, ResourceNodeBeacon> ResourceNodeBeacon;
+    private static Dictionary<uint, List<BattleframeVisuals>> BattleframeVisuals;
 
     // apt
     private static Dictionary<uint, BaseCommandDef> BaseCommandDef;
@@ -247,9 +251,12 @@ public class SDBInterface
         Deployable = loader.LoadDeployable();
         Monster = loader.LoadMonster();
         Turret = loader.LoadTurret();
+        PoseType = loader.LoadPoseType();
+        CharInfo = loader.LoadCharInfo();
 
         // dbvisualrecords
         WarpaintPalettes = loader.LoadWarpaintPalettes();
+        VisualRecord = loader.LoadVisualRecord();
 
         // dbitems
         AttributeCategory = loader.LoadAttributeCategory();
@@ -268,6 +275,7 @@ public class SDBInterface
         WeaponUnderbarrel = loader.LoadWeaponUnderbarrel();
         Ammo = loader.LoadAmmo();
         ResourceNodeBeacon = loader.LoadResourceNodeBeacon();
+        BattleframeVisuals = loader.LoadBattleframeVisuals();
 
         // apt
         StatusEffectData = loader.LoadStatusEffectData();
@@ -483,7 +491,7 @@ public class SDBInterface
         .Select(pair => new KeyValuePair<ushort, AttributeRange>(pair.Key.Value, pair.Value))
         .ToDictionary();
     }
-    
+
     public static Dictionary<ushort, (float, float)> GetItemModuleScalars(uint itemId)
     {
         return ItemModuleScalars
@@ -504,9 +512,12 @@ public class SDBInterface
     public static Deployable GetDeployable(uint id) => Deployable.GetValueOrDefault(id);
     public static Monster GetMonster(uint id) => Monster.GetValueOrDefault(id);
     public static Turret GetTurret(uint id) => Turret.GetValueOrDefault(id);
+    public static PoseType GetPoseType(uint id) => PoseType.GetValueOrDefault(id);
+    public static CharInfo GetCharInfo(uint id) => CharInfo.GetValueOrDefault(id);
 
-    // dbvisaulrecords
+    // dbvisualrecords
     public static WarpaintPalette GetWarpaintPalette(uint id) => WarpaintPalettes.GetValueOrDefault(id);
+    public static VisualRecord GetVisualRecord(uint id) => VisualRecord.GetValueOrDefault(id);
 
     // dbitems
     public static RootItem GetRootItem(uint id) => RootItem.GetValueOrDefault(id);
@@ -520,6 +531,7 @@ public class SDBInterface
     public static WeaponUnderbarrel GetWeaponUnderbarrel(uint id) => WeaponUnderbarrel.GetValueOrDefault(id);
     public static Ammo GetAmmo(uint id) => Ammo.GetValueOrDefault(id);
     public static ResourceNodeBeacon GetResourceNodeBeacon(uint id) => ResourceNodeBeacon.GetValueOrDefault(id);
+    public static List<BattleframeVisuals> GetBattleframeVisuals(uint id) => BattleframeVisuals.GetValueOrDefault(id);
 
     // apt
     public static BaseCommandDef GetBaseCommandDef(uint id) => BaseCommandDef.GetValueOrDefault(id);

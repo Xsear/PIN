@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Autofac;
 using CommandLine;
 using CommandLine.Text;
+using GameServer.Physics;
 
 namespace GameServer;
 
@@ -20,8 +21,16 @@ internal static class Program
             ApplyCliOptions(options, settings);
         }
 
-        var server = container.Resolve<GameServer>();
-        server.Run();
+        try
+        {
+            var server = container.Resolve<GameServer>();
+            server.Run();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Caught during factory creation: " + ex);
+        }
+
     }
 
     /// <summary>

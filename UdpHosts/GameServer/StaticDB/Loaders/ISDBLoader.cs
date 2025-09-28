@@ -5,7 +5,7 @@ using Records.apt;
 using Records.aptfs;
 using Records.dbcharacter;
 using Records.dbitems;
-using Records.dbviusalrecords;
+using Records.dbvisualrecords;
 using Records.vcs;
 
 public interface ISDBLoader
@@ -16,9 +16,12 @@ public interface ISDBLoader
     Dictionary<uint, Deployable> LoadDeployable();
     Dictionary<uint, Monster> LoadMonster();
     Dictionary<uint, Turret> LoadTurret();
+    Dictionary<uint, PoseType> LoadPoseType();
+    Dictionary<uint, CharInfo> LoadCharInfo();
 
     // dbvisualrecords
     Dictionary<uint, WarpaintPalette> LoadWarpaintPalettes();
+    Dictionary<uint, VisualRecord> LoadVisualRecord();
 
     // dbitems
     Dictionary<uint, AttributeCategory> LoadAttributeCategory();
@@ -35,6 +38,7 @@ public interface ISDBLoader
     Dictionary<uint, WeaponScope> LoadWeaponScope();
     Dictionary<uint, WeaponUnderbarrel> LoadWeaponUnderbarrel();
     Dictionary<uint, Ammo> LoadAmmo();
+    Dictionary<uint, List<BattleframeVisuals>> LoadBattleframeVisuals();
 
     // apt
     Dictionary<uint, BaseCommandDef> LoadBaseCommandDef();

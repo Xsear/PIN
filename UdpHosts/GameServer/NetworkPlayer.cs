@@ -311,6 +311,12 @@ public class NetworkPlayer : NetworkClient, INetworkPlayer
         CharacterEntity.PositionAtSpawnPoint(spawnPoint);
         CharacterEntity.SetSpawnPose();
 
+        if (CharacterEntity.Shard.Physics.DebugViewEntity == 0)
+        {
+            Log.Debug("Setting debugViewEntity to {id}", CharacterEntity.EntityId);
+            CharacterEntity.Shard.Physics.DebugViewEntity = CharacterEntity.EntityId;
+        }
+
         CurrentZone = z;
         CurrentOutpostId = outpostId;
 

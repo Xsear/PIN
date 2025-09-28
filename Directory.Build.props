@@ -1,11 +1,13 @@
 <Project>
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net9.0</TargetFramework>
         <LangVersion>latest</LangVersion>
     </PropertyGroup>
     <PropertyGroup Condition="'$(MSBuildProjectName)' != 'AeroMessages' And
                               '$(MSBuildProjectName)' != 'BepuPhysics' And
                               '$(MSBuildProjectName)' != 'BepuUtilities' And
+                              '$(MSBuildProjectName)' != 'DemoContentLoader' And
+                              '$(MSBuildProjectName)' != 'DemoUtilities' And
                               '$(MSBuildProjectName)' != 'Bitter'">
         <EnableNETAnalyzers>true</EnableNETAnalyzers>
         <AnalysisLevel>latest</AnalysisLevel>

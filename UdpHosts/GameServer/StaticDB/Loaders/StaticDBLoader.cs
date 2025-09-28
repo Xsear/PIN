@@ -8,7 +8,7 @@ using Records.apt;
 using Records.aptfs;
 using Records.dbcharacter;
 using Records.dbitems;
-using Records.dbviusalrecords;
+using Records.dbvisualrecords;
 using Records.vcs;
 using Shared.Common;
 using static FauFau.Formats.StaticDB;
@@ -30,13 +30,13 @@ public class StaticDBLoader : ISDBLoader
         sdb = instance;
     }
 
-    public Dictionary<uint, CharCreateLoadout> LoadCharCreateLoadout() 
+    public Dictionary<uint, CharCreateLoadout> LoadCharCreateLoadout()
     {
         return LoadStaticDB<CharCreateLoadout>("dbcharacter::CharCreateLoadout")
         .ToDictionary(row => row.Id);
     }
 
-    public Dictionary<uint, Dictionary<byte, CharCreateLoadoutSlots>> LoadCharCreateLoadoutSlots() 
+    public Dictionary<uint, Dictionary<byte, CharCreateLoadoutSlots>> LoadCharCreateLoadoutSlots()
     {
         return LoadStaticDB<CharCreateLoadoutSlots>("dbcharacter::CharCreateLoadoutSlots")
         .GroupBy(row => row.LoadoutId)
@@ -61,54 +61,79 @@ public class StaticDBLoader : ISDBLoader
             .ToDictionary(row => row.Id);
     }
 
-    public Dictionary<uint, WarpaintPalette> LoadWarpaintPalettes() 
+    public Dictionary<uint, PoseType> LoadPoseType()
+    {
+        return LoadStaticDB<PoseType>("dbcharacter::PoseType")
+            .ToDictionary(row => row.PoseId);
+    }
+
+    public Dictionary<uint, CharInfo> LoadCharInfo()
+    {
+        return LoadStaticDB<CharInfo>("dbcharacter::CharInfo")
+            .ToDictionary(row => row.Id);
+    }
+
+    public Dictionary<uint, WarpaintPalette> LoadWarpaintPalettes()
     {
         return LoadStaticDB<WarpaintPalette>("dbvisualrecords::WarpaintPalette")
         .ToDictionary(row => row.Id);
     }
 
-    public Dictionary<uint, AttributeCategory> LoadAttributeCategory() 
+    public Dictionary<uint, VisualRecord> LoadVisualRecord()
+    {
+        return LoadStaticDB<VisualRecord>("dbvisualrecords::VisualRecord")
+        .ToDictionary(row => row.Id);
+    }
+
+    public Dictionary<uint, AttributeCategory> LoadAttributeCategory()
     {
         return LoadStaticDB<AttributeCategory>("dbitems::AttributeCategory")
         .ToDictionary(row => row.Id);
     }
 
-    public Dictionary<uint, AttributeDefinition> LoadAttributeDefinition() 
+    public Dictionary<uint, AttributeDefinition> LoadAttributeDefinition()
     {
         return LoadStaticDB<AttributeDefinition>("dbitems::AttributeDefinition")
         .ToDictionary(row => row.Id);
     }
 
-    public Dictionary<KeyValuePair<uint, ushort>, AttributeRange> LoadAttributeRange() 
+    public Dictionary<KeyValuePair<uint, ushort>, AttributeRange> LoadAttributeRange()
     {
         // There are duplicates, like item 78084 which has the range attribute twice. Ingame, it seems too use only one result for that one, so chosing to do the same here.
         return LoadStaticDB<AttributeRange>("dbitems::AttributeRange")
         .GroupBy(row => new KeyValuePair<uint, ushort>(row.ItemId, row.AttributeId))
         .ToDictionary(group => group.Key, group => group.Last());
     }
-    
-    public Dictionary<KeyValuePair<uint, ushort>, ItemModuleScalars> LoadItemModuleScalars() 
+
+    public Dictionary<KeyValuePair<uint, ushort>, ItemModuleScalars> LoadItemModuleScalars()
     {
         return LoadStaticDB<ItemModuleScalars>("dbitems::ItemModuleScalars")
         .ToDictionary(row => new KeyValuePair<uint, ushort>(row.ItemId, row.AttributeCategory));
     }
 
-    public Dictionary<KeyValuePair<uint, ushort>, ItemCharacterScalars> LoadItemCharacterScalars() 
+    public Dictionary<KeyValuePair<uint, ushort>, ItemCharacterScalars> LoadItemCharacterScalars()
     {
         return LoadStaticDB<ItemCharacterScalars>("dbitems::ItemCharacterScalars")
         .ToDictionary(row => new KeyValuePair<uint, ushort>(row.ItemId, row.AttributeCategory));
     }
 
-    public Dictionary<uint, RootItem> LoadRootItem() 
+    public Dictionary<uint, RootItem> LoadRootItem()
     {
         return LoadStaticDB<RootItem>("dbitems::RootItem")
         .ToDictionary(row => row.SdbId);
     }
 
-    public Dictionary<uint, Battleframe> LoadBattleframe() 
+    public Dictionary<uint, Battleframe> LoadBattleframe()
     {
         return LoadStaticDB<Battleframe>("dbitems::Battleframe")
         .ToDictionary(row => row.Id);
+    }
+
+    public Dictionary<uint, List<BattleframeVisuals>> LoadBattleframeVisuals()
+    {
+        return LoadStaticDB<BattleframeVisuals>("dbitems::BattleframeVisuals")
+        .GroupBy(row => row.VisualGroup)
+        .ToDictionary(group => group.Key, group => group.ToList());
     }
 
     public Dictionary<uint, AbilityModule> LoadAbilityModule()
@@ -126,13 +151,13 @@ public class StaticDBLoader : ISDBLoader
     public Dictionary<uint, BaseCommandDef> LoadBaseCommandDef()
     {
         return LoadStaticDB<BaseCommandDef>("apt::BaseCommandDef")
-        .ToDictionary(row => row.Id); 
+        .ToDictionary(row => row.Id);
     }
 
     public Dictionary<uint, CommandType> LoadCommandType()
     {
         return LoadStaticDB<CommandType>("apt::CommandType")
-        .ToDictionary(row => row.Id); 
+        .ToDictionary(row => row.Id);
     }
 
     public Dictionary<uint, AbilityData> LoadAbilityData()
@@ -316,7 +341,7 @@ public class StaticDBLoader : ISDBLoader
         .ToDictionary(row => row.Id);
     }
 
-    public Dictionary<uint, TargetByCharacterStateCommandDef>  LoadTargetByCharacterStateCommandDef()
+    public Dictionary<uint, TargetByCharacterStateCommandDef> LoadTargetByCharacterStateCommandDef()
     {
         return LoadStaticDB<TargetByCharacterStateCommandDef>("aptfs::TargetByCharacterStateCommandDef")
         .ToDictionary(row => row.Id);
@@ -1339,7 +1364,7 @@ public class StaticDBLoader : ISDBLoader
                         return new { PropInfo = propInfo, ConvertedName = convertedName, Index = index, };
                     }).ToList();
 
-        foreach(Row row in table.Rows)
+        foreach (Row row in table.Rows)
         {
             T entry = new T();
             foreach (var prop in properties)
@@ -1364,7 +1389,7 @@ public class StaticDBLoader : ISDBLoader
             list.Add(entry);
         }
 
-        foreach(string text in warningsSet)
+        foreach (string text in warningsSet)
         {
             Console.WriteLine(text);
         }

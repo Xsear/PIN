@@ -14,42 +14,18 @@ public static class Quantizer
         return packed;
     }
 
-    private static byte PackComponent(float value)
-    {
-        // Clamp to [-1, 1]
-        float clamped = MathF.Max(-1.0f, MathF.Min(1.0f, value));
-        float abs = MathF.Abs(clamped);
-
-        // Quantize to 0–127
-        int quantized = (int)(abs * 127.0f + 0.5f);
-        byte magnitude = (byte)(quantized & 0x7F);
-
-        // Extract sign bit
-        byte sign = (byte)((BitConverter.SingleToInt32Bits(value) >> 31) & 0x1);
-
-        // Store sign in MSB
-        return (byte)((sign << 7) | magnitude);
-    }
-
     public static Vector3 UnpackVector3(byte[] packed)
     {
         if (packed.Length < 3)
+        {
             throw new ArgumentException("Packed vector must be 3 bytes.");
+        }
 
         float x = UnpackComponent(packed[0]);
         float y = UnpackComponent(packed[1]);
         float z = UnpackComponent(packed[2]);
 
         return new Vector3(x, y, z);
-    }
-
-    private static float UnpackComponent(byte b)
-    {
-        int sign = (b >> 7) & 0x1;
-        int magnitude = b & 0x7F;
-
-        float value = magnitude / 127.0f;
-        return sign == 1 ? -value : value;
     }
 
     public static sbyte[] PackVector3ToSBytes(Vector3 vec)
@@ -67,8 +43,33 @@ public static class Quantizer
         return new Vector3(
             UnpackComponent(b1),
             UnpackComponent(b2),
-            UnpackComponent(b3)
-        );
+            UnpackComponent(b3));
+    }
+
+    private static byte PackComponent(float value)
+    {
+        // Clamp to [-1, 1]
+        float clamped = MathF.Max(-1.0f, MathF.Min(1.0f, value));
+        float abs = MathF.Abs(clamped);
+
+        // Quantize to 0–127
+        int quantized = (int)(abs * 127.0f + 0.5f);
+        byte magnitude = (byte)(quantized & 0x7F);
+
+        // Extract sign bit
+        byte sign = (byte)((BitConverter.SingleToInt32Bits(value) >> 31) & 0x1);
+
+        // Store sign in MSB
+        return (byte)((sign << 7) | magnitude);
+    }
+
+    private static float UnpackComponent(byte b)
+    {
+        int sign = (b >> 7) & 0x1;
+        int magnitude = b & 0x7F;
+
+        float value = magnitude / 127.0f;
+        return sign == 1 ? -value : value;
     }
 
     private static float UnpackComponent(sbyte value)

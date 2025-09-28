@@ -29,8 +29,7 @@ public class PoseLoader
         _availableFolders = new HashSet<string>(
             Directory.GetDirectories(_assetRoot)
                      .Select(Path.GetFileName)
-                     .Where(name => name != null && name.All(char.IsDigit))
-        );
+                     .Where(name => name != null && name.All(char.IsDigit)));
 
         _logger.Information("PoseLoader initialized with {FolderCount} folders", _availableFolders.Count);
     }

@@ -21,6 +21,12 @@ public class PhysicsEngine
 {
     public const float TargetTimestepDuration = 50; // (1/20f)
 
+    public bool IsZoneLoaded = false;
+
+    public RigidPose DebugViewPose;
+    public Vector2 DebugViewHeading;
+    public ulong DebugViewEntity = 0;
+
     private const float _tempBodySphereSize = 0.9f;
 
     private readonly IShard _shard;
@@ -45,6 +51,7 @@ public class PhysicsEngine
         // Setup BepuPhysics
         BufferPool = new BufferPool();
         ThreadDispatcher = new ThreadDispatcher(targetThreadCount);
+        ThreadDispatcher2 = new ThreadDispatcher(1);
         Simulation = Simulation.Create(BufferPool,
             new NarrowPhaseCallbacks(),
             new PoseIntegratorCallbacks(new Vector3(0, 0, -8)),
@@ -60,14 +67,24 @@ public class PhysicsEngine
         // Load zone
         if (_settings.LoadMapsCollision)
         {
-            new ZoneLoader.ZoneLoader(Simulation, BufferPool, ThreadDispatcher).LoadCollision(_settings.MapsPath,
-                _shard.ZoneId);
+            new ZoneLoader.ZoneLoader(Simulation, BufferPool, ThreadDispatcher, _logger).LoadCollision(_settings.MapsPath,
+                _shard.ZoneId,
+                () =>
+                {
+                    _logger.Information("ZoneLoader Done");
+                    if (true)
+                    {
+                        _logger.Information("Starting Physics DebugView");
+                        DebugView.Init(this);
+                    }
+                });
         }
     }
 
     public Simulation Simulation { get; protected set; }
     public BufferPool BufferPool { get; private set; }
     public ThreadDispatcher ThreadDispatcher { get; private set; }
+    public ThreadDispatcher ThreadDispatcher2 { get; private set; }
     public double TimeAccumulator { get; protected set; }
 
     public void Tick(double deltaTime, ulong currentTime, CancellationToken ct)
@@ -89,6 +106,7 @@ public class PhysicsEngine
         };
         var body = Simulation.Bodies.Add(BodyDescription.CreateKinematic(pose, _defaultCharacterShape, -1));
         _bodyToEntityId[body] = entity.EntityId;
+
         return body;
     }
 
@@ -97,7 +115,13 @@ public class PhysicsEngine
         ref var currentPose = ref Simulation.Bodies[entity.BodyHandle].Pose;
         currentPose.Position = entity.Position;
         currentPose.Position.Z += _tempBodySphereSize; // Body size with scale
-        currentPose.Orientation = entity.Rotation;
+        currentPose.Orientation = Quaternion.Inverse(entity.Rotation);
+
+        if (entity.EntityId == DebugViewEntity)
+        {
+            DebugViewPose = currentPose;
+            DebugViewHeading = new Vector2(entity.HeadingYaw, entity.HeadingPitch);
+        }
     }
 
     public void ProjectileRayCast(ProjectileSim.ProjectileData projectile)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Numerics;
 using AeroMessages.Common;
@@ -12,11 +13,15 @@ using GameServer.Aptitude;
 using GameServer.Data;
 using GameServer.Data.SDB;
 using GameServer.Data.SDB.Records.customdata;
+using GameServer.Data.SDB.Records.dbcharacter;
+using GameServer.Data.SDB.Records.dbitems;
+using GameServer.Data.SDB.Records.dbvisualrecords;
 using GameServer.Entities.Deployable;
 using GameServer.Enums;
 using GameServer.Systems.Encounters;
 using GameServer.Test;
 using GrpcGameServerAPIClient;
+using Serilog;
 using LoadoutVisualType = AeroMessages.GSS.V66.Character.LoadoutConfig_Visual.LoadoutVisualType;
 
 namespace GameServer.Entities.Character;
@@ -197,7 +202,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     public HostilityInfoData HostilityInfo { get; set; }
     public MaxVital MaxShields { get; private set; }
     public MaxVital MaxHealth { get; private set; }
-    public GibVisuals GibVisualsInfo { get; set; }
+    public AeroMessages.GSS.V66.Character.GibVisuals GibVisualsInfo { get; set; }
     public ProcessDelayData ProcessDelay { get; set; }
     public EmoteData Emote { get; set; }
     public DockedParamsData DockedParams { get; set; }
@@ -349,6 +354,9 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             StatModifierIdentifier.WeaponDamageDealtMod, 1.0f
         },
     };
+
+    public float HeadingPitch { get; set; } = 0;
+    public float HeadingYaw { get; set; } = 0;
 
     public int CurrentHealth { get; private set; } = 0;
     public int CurrentShields { get; private set; } = 0;
@@ -666,6 +674,103 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         {
             Character_BaseController.SelectedLoadoutProp = SelectedLoadout;
         }
+
+        if (chassis.SdbId != 0)
+        {
+            // HANDLE POSE REFUCKING INTRODUCTION BITCH
+            // WHO THE FUCK AM I ANYWAY
+            var gender = StaticInfo.Gender;
+            var race = StaticInfo.Race;
+            var charInfoId = StaticInfo.CharInfoId;
+
+            CharInfo charInfo;
+            Battleframe battleframeRecord;
+            PoseType poseTypeRecord;
+            List<BattleframeVisuals> battleframeVisualGroupRecords;
+            BattleframeVisuals battleframeVisualGroupRecord = null;
+            VisualRecord battleframeVisualRecord = null;
+
+            try
+            {
+                charInfo = SDBInterface.GetCharInfo(charInfoId);
+                battleframeRecord = SDBInterface.GetBattleframe(chassis.SdbId);
+                poseTypeRecord = SDBInterface.GetPoseType(battleframeRecord.PosetypeId);
+                battleframeVisualGroupRecords = SDBInterface.GetBattleframeVisuals(battleframeRecord.VisualGroup);
+
+                // Find the appropriate visual record
+                byte retries = 3;
+                do
+                {
+                    foreach (var record in battleframeVisualGroupRecords)
+                    {
+                        bool matchesRace = record.Race == race;
+                        bool matchesAnyRace = record.Race == 255;
+                        bool matchesGender = (record.Gender == 'F' && gender == 1) || (record.Gender == 'M' && gender == 0);
+                        bool matchesAnyGender = record.Gender == 'X';
+
+                        bool valid = true;
+                        switch (retries)
+                        {
+                            case 3:
+                                // Pick exact match if found
+                                valid = matchesRace && matchesGender;
+                                break;
+                            case 2:
+                                // Otherwise, pick fallback if found
+                                valid = matchesAnyRace && matchesAnyGender;
+                                break;
+                            case 1:
+                                // Try to pick something reasonable
+                                valid = matchesRace || matchesGender;
+                                break;
+                            case 0:
+                                // Pick first result
+                                valid = true;
+                                break;
+                        }
+
+                        if (valid)
+                        {
+                            if (retries < 2)
+                            {
+                                Log.Warning("Picking uncertain Battleframe VisualRecord {recordId} of group {visualGroup} for chassi {chassiId}.", record.VisualrecId, battleframeRecord.VisualGroup, chassis.SdbId);
+                            }
+
+                            Log.Debug("Selected Battleframe VisualRecord {recordId} of group {visualGroup} for chassi {chassiId} (Had Gender {genderChar}, Race {raceId} ({raceStr}))", record.VisualrecId, battleframeRecord.VisualGroup, chassis.SdbId, gender == 1 ? "F" : "M", race, (CharacterRace)race);
+
+                            battleframeVisualGroupRecord = record;
+                            break;
+                        }
+                    }
+
+                    retries--;
+                }
+                while (battleframeVisualRecord == null && retries > 0);
+
+                battleframeVisualRecord = SDBInterface.GetVisualRecord(battleframeVisualGroupRecord.VisualrecId);
+            }
+            catch
+            {
+                Log.Error("Failed to get pose or visualrecord for chassi {chassiId}", chassis.SdbId);
+                throw;
+            }
+
+            // We should have the data now since we survived
+
+            // CharacterPoseData (3rd case of this name?)
+            Log.Debug("CHECK");
+            Log.Debug("CharInfo: {id} ({name})", charInfo.Id, charInfo.Name);
+            Log.Debug("Requires Ragdoll: {value}", charInfo.RequiresRagdoll);
+            Log.Debug("ChassisId: {chassisId}", chassis.SdbId);
+            Log.Debug("PoseType {poseId}", poseTypeRecord.PoseId);
+            Log.Debug("Physics Radius: {radius}", poseTypeRecord.PhysicsRadius);
+            Log.Debug("Physics Height: {height}", poseTypeRecord.PhysicsHeight);
+            Log.Debug("Physics Mass: {mass}", poseTypeRecord.PhysicsMass);
+            Log.Debug("PoseCollisionId (Standing): {collisionId}", poseTypeRecord.StandingCollisionid);
+            Log.Debug("VisualGroup: {visualGroup}", battleframeRecord.VisualGroup);
+            Log.Debug("VisualRecord: {visualRecord}", battleframeVisualRecord.Id);
+            Log.Debug("RagdollCollisionId: {collisionId}", battleframeVisualRecord.RagdollCollisionId);
+        }
     }
 
     public float GetItemAttribute(ushort id) => CurrentLoadout.ItemAttributes.GetValueOrDefault(id);
@@ -934,6 +1039,12 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         AimDirection = poseData.Aim;
         MovementShortTime = shortTime;
         RefreshMovementView();
+    }
+
+    public void SetHeading(float yaw, float pitch)
+    {
+        HeadingPitch = pitch;
+        HeadingYaw = yaw;
     }
 
     public void SetPosition(Vector3 newPosition)
@@ -1423,7 +1534,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         };
         SetMaxShields(0, true);
         SetMaxHealth(19192, true);
-        GibVisualsInfo = new GibVisuals
+        GibVisualsInfo = new AeroMessages.GSS.V66.Character.GibVisuals
         {
             Id = 0,
             Time = Shard.CurrentTime
@@ -2164,7 +2275,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         };
     }
 
-    private void InitBody()
+    public void InitBody()
     {
         BodyHandle = Shard.Physics.CreateKineticEntity(this);
     }

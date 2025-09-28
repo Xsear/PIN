@@ -10,6 +10,7 @@ using BepuPhysics;
 using BepuPhysics.Collidables;
 using BepuUtilities;
 using BepuUtilities.Memory;
+using Serilog;
 using static GameServer.Physics.ZoneLoader.BepuData;
 using static GameServer.Physics.ZoneLoader.ENWFData;
 
@@ -22,9 +23,11 @@ public class ZoneLoader
         IncludeFields = true,
         PropertyNameCaseInsensitive = true
     };
+    private readonly ILogger _logger;
 
-    public ZoneLoader(Simulation simulation, BufferPool pool, ThreadDispatcher dispatcher)
+    public ZoneLoader(Simulation simulation, BufferPool pool, ThreadDispatcher dispatcher, ILogger logger)
     {
+        _logger = logger;
         Simulation = simulation;
         BufferPool = pool;
         ThreadDispatcher = dispatcher;
@@ -39,7 +42,7 @@ public class ZoneLoader
     public BufferPool BufferPool { get; private set; }
     public ThreadDispatcher ThreadDispatcher { get; private set; }
 
-    public void LoadCollision(string mapsPath, uint zoneId)
+    public void LoadCollision(string mapsPath, uint zoneId, Action onComplete)
     {
         Stopwatch stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -48,7 +51,7 @@ public class ZoneLoader
         PinZone zoneData = LoadZoneJSON(zoneFilePath);
         if (zoneData == null)
         {
-            Console.WriteLine($"ZoneLoader Failed to load {zoneFilePath}");
+            _logger.Error("Failed to load {zoneFilePath}", zoneFilePath);
             return;
         }
 
@@ -58,7 +61,7 @@ public class ZoneLoader
         {
             var chunkFilePath = $"{mapsPath}\\chunks\\{chunk.Name}.pinchunk.json";
             var success = LoadChunkJSON(chunk.Origin, chunkFilePath);
-            Console.WriteLine($"({++counter}/{zoneData.Chunks.Length}) Chunk {chunk.Name} {(success ? "Loaded" : "Failed")}");
+            _logger.Debug("({counter}/{total}) Chunk {chunkName} {(successStr)}", ++counter, zoneData.Chunks.Length, chunk.Name, success ? "Loaded" : "Failed");
         }
 
         stopWatch.Stop();
@@ -68,13 +71,14 @@ public class ZoneLoader
             ts.Minutes,
             ts.Seconds,
             ts.Milliseconds / 10);
-        
-        Console.WriteLine($"ZoneLoader LoadCollision Finished in {elapsedTime}");
+
+        _logger.Debug("LoadCollision Finished in {elapsedTime}", elapsedTime);
+        onComplete.Invoke();
     }
 
     private PinZone LoadZoneJSON(string path)
     {
-        Console.WriteLine($"ZoneLoader LoadZoneJSON {path}");
+        _logger.Information("LoadZoneJSON {path}", path);
         try
         {
             string json = File.ReadAllText(path);
@@ -82,20 +86,20 @@ public class ZoneLoader
         }
         catch (Exception e)
         {
-            Console.WriteLine($"ZoneLoader LoadZoneJSON Failed: {e.Message} ({e.GetType().Name})");
+            _logger.Error("LoadZoneJSON Failed {exceptionMessage} ({exceptionType})", e.Message, e.GetType().Name);
             return null;
         }
     }
 
     private bool LoadChunkJSON(Vector3 origin, string path)
     {
-        // Console.WriteLine($"ZoneLoader LoadChunkJSON {path}");
+        _logger.Verbose("LoadChunkJSON {path}", path);
         try
         {
             string json = File.ReadAllText(path);
             PinChunk chunk = JsonSerializer.Deserialize<PinChunk>(json, _serializerOptions);
 
-            foreach (PinChunkSubChunk subChunk in chunk.SubChunks) 
+            foreach (PinChunkSubChunk subChunk in chunk.SubChunks)
             {
                 if (subChunk.Cg != null)
                 {
@@ -117,7 +121,7 @@ public class ZoneLoader
         }
         catch (Exception e)
         {
-            Console.WriteLine($"ZoneLoader LoadChunkJSON Failed: {e.Message} ({e.GetType().Name}) on {path}");
+            _logger.Verbose("LoadChunkJSON Failed {exceptionMessage} ({exceptionType}) on {path}", e.Message, e.GetType().Name, path);
             return false;
         }
     }
@@ -137,7 +141,7 @@ public class ZoneLoader
                 return ProcessShape(cylinder, ref layer);
             case HkpExtendedMeshShapeObject extendedMesh:
                 return ProcessShape(extendedMesh, ref layer);
-            
+
             /*
             case HkpConvexVerticesShapeObject convexVertices:
                 return ProcessShape(convexVertices, ref layer);
@@ -148,7 +152,7 @@ public class ZoneLoader
                 return ProcessContainer(list, ref layer);
             case HkpMoppBvTreeShapeObject moppBvTree:
                 return ProcessContainer(moppBvTree, ref layer);
-            
+
             // Modifiers
             case HkpConvexTranslateShapeObject convexTranslate:
                 return ProcessModifier(convexTranslate, ref layer);
@@ -176,7 +180,7 @@ public class ZoneLoader
             }
             catch (NotImplementedException)
             {
-                Console.WriteLine($"Ignoring child {childObj} of {obj} because support is not implemented");
+                _logger.Warning("Ignoring child {childObject} of {parentObject} because support is not implemented", childObj, obj);
             }
         }
 
@@ -207,7 +211,7 @@ public class ZoneLoader
     {
         var childShapeObj = layer.GetTagfileObject(obj.ChildShape);
         var childShapeStaticArr = ProcessChunkObject(childShapeObj, ref layer);
-    
+
         var rot = new Quaternion(obj.Rotation[0], obj.Rotation[1], obj.Rotation[2], obj.Rotation[3]);
         var pos = new Vector3(obj.Transform[3][0], obj.Transform[3][1], obj.Transform[3][2]);
 
@@ -255,7 +259,7 @@ public class ZoneLoader
             0,
             0);
         var rot = Quaternion.Normalize(Quaternion.CreateFromRotationMatrix(matrix));
-        
+
         return childShapeStaticArr.Select((StaticDescription childShapeStatic) =>
         {
             childShapeStatic.Pose.Orientation = rot;
@@ -267,15 +271,15 @@ public class ZoneLoader
     private StaticDescription[] ProcessShape(HkpBoxShapeObject obj, ref ENWFLayer layer)
     {
         var box = new Box(obj.HalfExtents[0] * 2, obj.HalfExtents[1] * 2, obj.HalfExtents[2] * 2);
-        var stat = new StaticDescription(RigidPose.Identity,  Simulation.Shapes.Add(box));
-        return[stat];
+        var stat = new StaticDescription(RigidPose.Identity, Simulation.Shapes.Add(box));
+        return [stat];
     }
 
     private StaticDescription[] ProcessShape(HkpSphereShapeObject obj, ref ENWFLayer layer)
     {
         var sphere = new Sphere(obj.Radius);
-        var stat = new StaticDescription(RigidPose.Identity,  Simulation.Shapes.Add(sphere));
-        return[stat];
+        var stat = new StaticDescription(RigidPose.Identity, Simulation.Shapes.Add(sphere));
+        return [stat];
     }
 
     private StaticDescription[] ProcessShape(HkpCapsuleShapeObject obj, ref ENWFLayer layer)
@@ -305,7 +309,7 @@ public class ZoneLoader
             throw new Exception();
         }
 
-        return[stat];
+        return [stat];
     }
 
     private StaticDescription[] ProcessShape(HkpCylinderShapeObject obj, ref ENWFLayer layer)
@@ -325,7 +329,7 @@ public class ZoneLoader
         pose.Position = mid;
 
         var stat = new StaticDescription(pose, Simulation.Shapes.Add(cylinder));
-        return[stat];
+        return [stat];
     }
 
     private StaticDescription[] ProcessShape(HkpExtendedMeshShapeObject obj, ref ENWFLayer layer)
@@ -355,7 +359,7 @@ public class ZoneLoader
             var pos = new Vector3(transform[0][0], transform[0][1], transform[0][2]);
 
             var mesh = BepuData.LoadMeshContent(meshContent, BufferPool, scale, ThreadDispatcher);
-            
+
             var pose = RigidPose.Identity;
             pose.Orientation = rot;
             pose.Position = pos;

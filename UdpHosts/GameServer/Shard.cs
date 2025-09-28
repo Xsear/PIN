@@ -172,6 +172,7 @@ public class Shard : IShard
 
     private void RunThread(CancellationToken ct)
     {
+        Logger.Information("Starting shard {instanceId}", InstanceId);
         _startTime = (long)DateTime.Now.UnixTimestamp();
         _lastNetTick = 0;
 

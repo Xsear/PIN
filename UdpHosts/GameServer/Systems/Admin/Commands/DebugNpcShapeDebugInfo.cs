@@ -1,5 +1,4 @@
 using System.Numerics;
-using AeroMessages.GSS.V66.Character;
 
 namespace GameServer.Admin;
 
@@ -28,8 +27,6 @@ public class DebugNpcShapeDebugInfo : ServerCommand
 
         var character = context.SourcePlayer.CharacterEntity;
         var target = context.Target;
-
-
 
         var typeStr = string.Empty;
         if (parameters.Length >= 1)

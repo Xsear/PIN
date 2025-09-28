@@ -107,8 +107,9 @@ public class GameServerModule : Module
         builder.Register(ctx =>
             {
                 var loggerConfig = new LoggerConfiguration()
+                    .Enrich.With<FirefallLogLevelEnricher>()
                     .ReadFrom.AppSettings()
-                    .WriteTo.Console(theme: SerilogTheme.Custom, outputTemplate: "[{Timestamp:HH:mm:ss.fff} {Level:u5} {SourceContext}] {Message:lj}{NewLine}{Exception}");
+                    .WriteTo.Console(theme: SerilogTheme.Custom, outputTemplate: "[{Timestamp:HH:mm:ss.fff} {FirefallLogLevel} {SourceContext}] {Message:lj}{NewLine}{Exception}");
 
                 var settings = ctx.Resolve<GameServerSettings>();
 

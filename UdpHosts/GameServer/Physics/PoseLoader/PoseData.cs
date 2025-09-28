@@ -63,7 +63,7 @@ public class PoseData
                 Type = Enum.TryParse<ShapeType>(values.GetValueOrDefault("Type")?.Trim('"'), true, out var type)
                     ? type
                     : ShapeType.Unknown,
-                Flags = ParseFlags(values.GetValueOrDefault("Flags") ?? ""),
+                Flags = ParseFlags(values.GetValueOrDefault("Flags") ?? string.Empty),
                 Origin = ParseVector3(values.GetValueOrDefault("Origin") ?? "<0 0 0>"),
                 Radius = TryParseFloat(values.GetValueOrDefault("Radius")),
                 Height = TryParseFloat(values.GetValueOrDefault("Height")),

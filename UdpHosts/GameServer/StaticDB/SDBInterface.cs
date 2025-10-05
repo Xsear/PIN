@@ -240,6 +240,7 @@ public class SDBInterface
     private static Dictionary<uint, TurretComponentDef> TurretComponentDef;
     private static Dictionary<uint, DeployableComponentDef> DeployableComponentDef;
     private static Dictionary<uint, SpawnPointComponentDef> SpawnPointComponentDef;
+    private static Dictionary<uint, HullSegmentDef> HullSegmentDef;
 
     public static void Init(StaticDB instance)
     {
@@ -473,6 +474,7 @@ public class SDBInterface
         TurretComponentDef = loader.LoadTurretComponentDef();
         DeployableComponentDef = loader.LoadDeployableComponentDef();
         SpawnPointComponentDef = loader.LoadSpawnPointComponentDef();
+        HullSegmentDef = loader.LoadHullSegmentDef();
     }
 
     // dbcharacter
@@ -729,4 +731,6 @@ public class SDBInterface
     public static TurretComponentDef GetTurretComponentDef(uint id) => TurretComponentDef.GetValueOrDefault(id);
     public static DeployableComponentDef GetDeployableComponentDef(uint id) => DeployableComponentDef.GetValueOrDefault(id);
     public static SpawnPointComponentDef GetSpawnPointComponentDef(uint id) => SpawnPointComponentDef.GetValueOrDefault(id);
+    public static HullSegmentDef GetHullSegmentComponentDef(uint id) => HullSegmentDef.GetValueOrDefault(id);
+
 }

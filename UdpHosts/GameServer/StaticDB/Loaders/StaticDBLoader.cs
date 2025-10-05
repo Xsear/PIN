@@ -900,6 +900,12 @@ public class StaticDBLoader : ISDBLoader
         .ToDictionary(row => row.Id);
     }
 
+    public Dictionary<uint, HullSegmentDef> LoadHullSegmentDef()
+    {
+        return LoadStaticDB<HullSegmentDef>("vcs::HullSegmentDef")
+        .ToDictionary(row => row.Id);
+    }
+
     public Dictionary<uint, TargetSingleCommandDef> LoadTargetSingleCommandDef()
     {
         return LoadStaticDB<TargetSingleCommandDef>("apt::TargetSingleCommandDef")

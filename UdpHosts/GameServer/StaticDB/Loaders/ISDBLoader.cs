@@ -234,4 +234,5 @@ public interface ISDBLoader
     Dictionary<uint, TurretComponentDef> LoadTurretComponentDef();
     Dictionary<uint, DeployableComponentDef> LoadDeployableComponentDef();
     Dictionary<uint, SpawnPointComponentDef> LoadSpawnPointComponentDef();
+    Dictionary<uint, HullSegmentDef> LoadHullSegmentDef();
 }

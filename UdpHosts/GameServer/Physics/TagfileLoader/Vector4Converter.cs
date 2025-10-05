@@ -3,7 +3,7 @@ using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace GameServer.Physics.ZoneLoader;
+namespace GameServer.Physics;
 
 public class Vector4Converter : JsonConverter<Vector4>
 {

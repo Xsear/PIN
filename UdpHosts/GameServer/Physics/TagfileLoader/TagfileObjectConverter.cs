@@ -1,9 +1,8 @@
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using static GameServer.Physics.ZoneLoader.ENWFData;
 
-namespace GameServer.Physics.ZoneLoader;
+namespace GameServer.Physics;
 
 public class TagfileObjectJsonConverter : JsonConverter<BaseTagfileObject>
 {

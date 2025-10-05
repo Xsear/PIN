@@ -61,7 +61,7 @@ public class ZoneLoader
         {
             var chunkFilePath = $"{mapsPath}\\chunks\\{chunk.Name}.pinchunk.json";
             var success = LoadChunkJSON(chunk.Origin, chunkFilePath);
-            _logger.Debug("({counter}/{total}) Chunk {chunkName} {(successStr)}", ++counter, zoneData.Chunks.Length, chunk.Name, success ? "Loaded" : "Failed");
+            _logger.Debug("({counter}/{total}) Chunk {chunkName} ({successStr})", ++counter, zoneData.Chunks.Length, chunk.Name, success ? "Loaded" : "Failed");
         }
 
         stopWatch.Stop();
@@ -358,7 +358,7 @@ public class ZoneLoader
             var scale = new Vector3(transform[2][0], transform[2][1], transform[2][2]);
             var pos = new Vector3(transform[0][0], transform[0][1], transform[0][2]);
 
-            var mesh = BepuData.LoadMeshContent(meshContent, BufferPool, scale, ThreadDispatcher);
+            var mesh = LoadMeshContent(meshContent, BufferPool, scale, ThreadDispatcher);
 
             var pose = RigidPose.Identity;
             pose.Orientation = rot;

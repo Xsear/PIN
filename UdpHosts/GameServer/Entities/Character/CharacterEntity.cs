@@ -1485,7 +1485,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     public void SetCurrentHealth(int newValue)
     {
         CurrentHealth = Math.Min(Math.Max(0, newValue), MaxHealth.Value);
-        byte pct = MaxHealth.Value > 0 ? (byte)((float)(CurrentHealth / MaxHealth.Value) * 100) : (byte)0;
+        byte pct = MaxHealth.Value > 0 ? (byte)(((float)CurrentHealth / MaxHealth.Value) * 100) : (byte)0;
 
         if (Character_ObserverView != null)
         {

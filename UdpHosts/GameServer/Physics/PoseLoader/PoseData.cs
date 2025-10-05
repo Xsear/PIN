@@ -93,11 +93,47 @@ public class PoseData
                 case "HEADSHOT":
                     result.Headshot = true;
                     break;
+                case "SHIELD":
+                    result.Shield = true;
+                    break;
+                case "AREAONLY":
+                    result.AreaOnly = true;
+                    break;
+                case "SHOOTOUT":
+                    result.ShootOut = true;
+                    break;
+                case "SHOOTIN":
+                    result.ShootIn = true;
+                    break;
+                case "SHOOTTHROUGH":
+                    result.ShootThrough = true;
+                    break;
+                case "INTERACT_ONLY":
+                    result.InteractOnly = true;
+                    break;
+                case "NON_INTERACTIVE":
+                    result.NonInteractive = true;
+                    break;
+                case "TRANSPARENT":
+                    result.Transparent = true;
+                    break;
+                case "BOUNCE_BULLETS":
+                    result.BounceBullets = true;
+                    break;
+                case "REFRACT_BULLETS":
+                    result.RefractBullets = true;
+                    break;
+                case "NPC_WARNING":
+                    result.NpcWarning = true;
+                    break;
                 case "RAGDOLL_QUERY_ONLY":
                     result.RagdollQueryOnly = true;
                     break;
-                case "NPC_WARNING":
-                    result.NPCWarning = true;
+                case "NPC_QUERY_ONLY":
+                    result.NpcQueryOnly = true;
+                    break;
+                case "IGNORE_PROJECTILES":
+                    result.IgnoreProjectiles = true;
                     break;
             }
         }
@@ -108,8 +144,20 @@ public class PoseData
     public class ShapeFlags
     {
         public bool Headshot { get; set; }
+        public bool Shield { get; set; }
+        public bool AreaOnly { get; set; }
+        public bool ShootOut { get; set; }
+        public bool ShootIn { get; set; }
+        public bool ShootThrough { get; set; }
+        public bool InteractOnly { get; set; }
+        public bool NonInteractive { get; set; }
+        public bool Transparent { get; set; }
+        public bool BounceBullets { get; set; }
+        public bool RefractBullets { get; set; }
+        public bool NpcWarning { get; set; }
         public bool RagdollQueryOnly { get; set; }
-        public bool NPCWarning { get; set; }
+        public bool NpcQueryOnly { get; set; }
+        public bool IgnoreProjectiles { get; set; }
     }
 
     public class Shape
@@ -118,9 +166,11 @@ public class PoseData
         public ShapeType Type { get; set; } = ShapeType.Unknown;
         public ShapeFlags Flags { get; set; } = new ShapeFlags();
         public Vector3 Origin { get; set; }
-        public Matrix3x3? Rotation { get; set; } // Optional
+        public Matrix3x3? Rotation { get; set; }
         public float? Radius { get; set; }
         public float? Height { get; set; }
         public int? Material { get; set; }
+        public float? DamageMod { get; set; }
+        public string? HitTagType { get; set; }
     }
 }

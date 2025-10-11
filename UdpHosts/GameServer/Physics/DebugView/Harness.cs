@@ -406,11 +406,11 @@ public class DemoHarness : IDisposable
                 _font);
         }
 
-        renderer.Shapes.AddInstances(_engine.Simulation, _engine.ThreadDispatcher2);
+        renderer.Shapes.AddInstances(_engine.Simulation, _engine.DebugThreadDispatcher);
         renderer.Lines.ShowConstraints = _showConstraints;
         renderer.Lines.ShowContacts = _showContacts;
         renderer.Lines.ShowBoundingBoxes = _showBoundingBoxes;
-        renderer.Lines.Extract(_engine.Simulation, _engine.ThreadDispatcher2);
+        renderer.Lines.Extract(_engine.Simulation, _engine.DebugThreadDispatcher);
     }
 
     public void Dispose()

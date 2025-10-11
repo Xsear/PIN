@@ -6,7 +6,7 @@ namespace GameServer.Physics.ZoneLoader;
 
 public class ENWFData
 {
-    public class ENWFLayer : ITagfile
+    public class ENWFLayer : ITagfileExternalStorage
     {
         public ulong Id;
         public uint NumPhysicsMatIds;

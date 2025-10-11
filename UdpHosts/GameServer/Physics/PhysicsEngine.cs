@@ -50,8 +50,9 @@ public class PhysicsEngine
 
         // Setup BepuPhysics
         BufferPool = new BufferPool();
-        ThreadDispatcher = new ThreadDispatcher(targetThreadCount);
-        ThreadDispatcher2 = new ThreadDispatcher(1);
+        PhysicsThreadDispatcher = new ThreadDispatcher(targetThreadCount);
+        LoaderThreadDispatcher = new ThreadDispatcher(1);
+        DebugThreadDispatcher = new ThreadDispatcher(1);
         Simulation = Simulation.Create(BufferPool,
             new NarrowPhaseCallbacks(),
             new PoseIntegratorCallbacks(new Vector3(0, 0, -8)),
@@ -67,7 +68,9 @@ public class PhysicsEngine
         // Load zone
         if (_settings.LoadMapsCollision)
         {
-            new ZoneLoader.ZoneLoader(Simulation, BufferPool, ThreadDispatcher, _logger).LoadCollision(_settings.MapsPath,
+            TagfileLoader = new TagfileLoader(Simulation, BufferPool, LoaderThreadDispatcher, _logger);
+            ZoneLoader = new ZoneLoader.ZoneLoader(Simulation, BufferPool, LoaderThreadDispatcher, TagfileLoader, _logger);
+            ZoneLoader.LoadCollision(_settings.MapsPath,
                 _shard.ZoneId,
                 () =>
                 {
@@ -83,16 +86,19 @@ public class PhysicsEngine
 
     public Simulation Simulation { get; protected set; }
     public BufferPool BufferPool { get; private set; }
-    public ThreadDispatcher ThreadDispatcher { get; private set; }
-    public ThreadDispatcher ThreadDispatcher2 { get; private set; }
+    public ThreadDispatcher PhysicsThreadDispatcher { get; private set; }
+    public ThreadDispatcher LoaderThreadDispatcher { get; private set; }
+    public ThreadDispatcher DebugThreadDispatcher { get; private set; }
     public double TimeAccumulator { get; protected set; }
+    public TagfileLoader TagfileLoader { get; private set; }
+    public ZoneLoader.ZoneLoader ZoneLoader { get; private set; }
 
     public void Tick(double deltaTime, ulong currentTime, CancellationToken ct)
     {
         TimeAccumulator += deltaTime;
         while (!ct.IsCancellationRequested && TimeAccumulator >= TargetTimestepDuration)
         {
-            Simulation.Timestep(TargetTimestepDuration, ThreadDispatcher);
+            Simulation.Timestep(TargetTimestepDuration, PhysicsThreadDispatcher);
             TimeAccumulator -= TargetTimestepDuration;
         }
     }
@@ -141,7 +147,7 @@ public class PhysicsEngine
         hitHandler.AvoidSourceBody = true;
         hitHandler.SourceBody = source.BodyHandle;
 
-        Simulation.RayCast(origin, direction, float.MaxValue, ref hitHandler);
+        Simulation.RayCast(origin, direction, float.MaxValue, BufferPool, ref hitHandler);
         if (hitHandler.T < maxRange)
         {
             var hitPosition = origin + (direction * hitHandler.T);
@@ -195,7 +201,7 @@ public class PhysicsEngine
         hitHandler.T = maxRange;
         hitHandler.AvoidSourceBody = true;
         hitHandler.SourceBody = source.BodyHandle;
-        Simulation.RayCast(origin, direction, float.MaxValue, ref hitHandler);
+        Simulation.RayCast(origin, direction, float.MaxValue, BufferPool, ref hitHandler);
         if (hitHandler.T < maxRange)
         {
             outHit = true;

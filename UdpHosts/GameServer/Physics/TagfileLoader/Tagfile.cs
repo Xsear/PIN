@@ -3,11 +3,12 @@ using System.Numerics;
 
 namespace GameServer.Physics;
 
-public interface ITagfile
+public interface ITagfileExternalStorage
 {
     VertBlockContent[] VertBlocks { get; }
     IndiceBlockContent[] IndiceBlocks { get; }
     Dictionary<string, BaseTagfileObject> TagfileObjects { get; }
+    BaseTagfileObject GetTagfileObject(string query);
 }
 
 public struct VertBlockContent

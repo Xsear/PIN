@@ -94,6 +94,10 @@ public class HkpConvexTransformShapeObject : BaseTagfileObject
 
 public class HkpConvexVerticesShapeObject : BaseTagfileObject
 {
+    public uint UserData;
+    public float Radius;
+    public uint NumVertices;
+    public Vector4[][] RotatedVertices;
 }
 
 public class HkpExtendedMeshShapeObject : BaseTagfileObject
@@ -142,4 +146,78 @@ public class HkpExtendedMeshShapeObject : BaseTagfileObject
         public Vector4 Rotation;
         public Vector4 Translation;
     }
+}
+
+public class HkRootLevelContainerObject : BaseTagfileObject
+{
+    public NamedVariant[] NamedVariants;
+
+    public struct NamedVariant
+    {
+        public string Variant;
+    }
+}
+
+public class HkpRigidBody : BaseTagfileObject
+{
+    public CollidableData Collidable;
+    public MotionData Motion;
+
+    public struct CollidableData
+    {
+        public string Shape;
+    }
+
+    public struct MotionData
+    {
+        public MotionStateData MotionState;
+    }
+
+    public struct MotionStateData
+    {
+        public Vector4[] Transform;
+    }
+}
+
+public class HkpStorageExtendedMeshShape : HkpExtendedMeshShapeObject
+{
+    public string[] Meshstorage;
+    public string[] Shapestorage;
+}
+
+public class HkpStorageExtendedMeshShapeMeshSubpartStorage : BaseTagfileObject
+{
+    public Vector4[] Vertices;
+    public uint[] Indices8;
+    public uint[] Indices16;
+    public uint[] Indices32;
+    public uint[] MaterialIndices;
+}
+
+public class HkpSimpleMeshShape : BaseTagfileObject
+{
+    public uint UserData;
+    public string DisableWelding;
+    public string CollectionType;
+    public string WeldingType;
+    public float Radius;
+    public uint[] MaterialIndices;
+    public Vector4[] Vertices;
+    public TriangleData[] Triangles;
+
+    public struct TriangleData
+    {
+        public uint A;
+        public uint B;
+        public uint C;
+        public uint WeldingInfo;
+    }
+}
+
+public class HkaRagdollInstance : BaseTagfileObject
+{
+    public string[] RigidBodies;
+    public string[] Constraints;
+    public uint[] BoneToRigidBodyMap;
+    public string Skeleton;
 }

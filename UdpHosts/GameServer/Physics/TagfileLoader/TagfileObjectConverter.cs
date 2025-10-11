@@ -14,47 +14,24 @@ public class TagfileObjectJsonConverter : JsonConverter<BaseTagfileObject>
 
             string className = root.GetProperty("class").GetString();
             JsonElement dataElement = root.GetProperty("data");
-
-            BaseTagfileObject result;
-            switch (className)
+            string rawText = dataElement.GetRawText();
+            BaseTagfileObject result = className switch
             {
-                case "hkpListShape":
-                    result = JsonSerializer.Deserialize<HkpListShapeObject>(dataElement.GetRawText(), options);
-                    break;
-                case "hkpMoppBvTreeShape":
-                    result = JsonSerializer.Deserialize<HkpMoppBvTreeShapeObject>(dataElement.GetRawText(), options);
-                    break;
-                case "hkpConvexTranslateShape":
-                    result = JsonSerializer.Deserialize<HkpConvexTranslateShapeObject>(dataElement.GetRawText(), options);
-                    break;
-                case "hkpBoxShape":
-                    result = JsonSerializer.Deserialize<HkpBoxShapeObject>(dataElement.GetRawText(), options);
-                    break;
-                case "hkpSphereShape":
-                    result = JsonSerializer.Deserialize<HkpSphereShapeObject>(dataElement.GetRawText(), options);
-                    break;
-                case "hkpCapsuleShape":
-                    result = JsonSerializer.Deserialize<HkpCapsuleShapeObject>(dataElement.GetRawText(), options);
-                    break;
-                case "hkpCylinderShape":
-                    result = JsonSerializer.Deserialize<HkpCylinderShapeObject>(dataElement.GetRawText(), options);
-                    break;
-                case "hkpTransformShape":
-                    result = JsonSerializer.Deserialize<HkpTransformShapeObject>(dataElement.GetRawText(), options);
-                    break;
-                case "hkpConvexTransformShape":
-                    result = JsonSerializer.Deserialize<HkpConvexTransformShapeObject>(dataElement.GetRawText(), options);
-                    break;
-                case "hkpConvexVerticesShape":
-                    result = JsonSerializer.Deserialize<HkpConvexVerticesShapeObject>(dataElement.GetRawText(), options);
-                    break;
-                case "hkpExtendedMeshShape":
-                    result = JsonSerializer.Deserialize<HkpExtendedMeshShapeObject>(dataElement.GetRawText(), options);
-                    break;
-                default:
-                    throw new InvalidOperationException("Unknown class type: " + className);
-            }
-
+                "hkpListShape" => JsonSerializer.Deserialize<HkpListShapeObject>(rawText, options),
+                "hkpMoppBvTreeShape" => JsonSerializer.Deserialize<HkpMoppBvTreeShapeObject>(rawText, options),
+                "hkpConvexTranslateShape" => JsonSerializer.Deserialize<HkpConvexTranslateShapeObject>(rawText, options),
+                "hkpBoxShape" => JsonSerializer.Deserialize<HkpBoxShapeObject>(rawText, options),
+                "hkpSphereShape" => JsonSerializer.Deserialize<HkpSphereShapeObject>(rawText, options),
+                "hkpCapsuleShape" => JsonSerializer.Deserialize<HkpCapsuleShapeObject>(rawText, options),
+                "hkpCylinderShape" => JsonSerializer.Deserialize<HkpCylinderShapeObject>(rawText, options),
+                "hkpTransformShape" => JsonSerializer.Deserialize<HkpTransformShapeObject>(rawText, options),
+                "hkpConvexTransformShape" => JsonSerializer.Deserialize<HkpConvexTransformShapeObject>(rawText, options),
+                "hkpConvexVerticesShape" => JsonSerializer.Deserialize<HkpConvexVerticesShapeObject>(rawText, options),
+                "hkpExtendedMeshShape" => JsonSerializer.Deserialize<HkpExtendedMeshShapeObject>(rawText, options),
+                "hkRootLevelContainer" => JsonSerializer.Deserialize<HkRootLevelContainerObject>(rawText, options),
+                "hkpRigidBody" => JsonSerializer.Deserialize<HkpRigidBody>(rawText, options),
+                _ => throw new InvalidOperationException("Unknown class type: " + className),
+            };
             result.Name = root.GetProperty("name").GetString();
             result.Class = className;
 

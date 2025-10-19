@@ -350,6 +350,15 @@ public class EntityManager
                 {
                     TempSpawnTestEntities();
                 }
+
+                if (_shard.ZoneId == 12)
+                {
+                    var owner = SpawnCharacter(2312, new Vector3(0f, 3f, 0f));
+                    SpawnCharacter(2385, new Vector3(1.5f, 3f, 0f));
+                    // SpawnVehicle(116, new Vector3(-1.5f, 3f, 0f), Quaternion.Identity, owner, false);
+                    SpawnVehicle(201, new Vector3(-1.5f, 7f, 0f), Quaternion.Identity, owner, false);
+                }
+
             }
         }
 
@@ -452,6 +461,21 @@ public class EntityManager
 
     public void Add(ulong guid, IEntity entity)
     {
+        if (entity is CharacterEntity character)
+        {
+            if (character.BodyHandle.Value == 0)
+            {
+                character.InitBody();
+            }
+        }
+        else if (entity is VehicleEntity vehicle)
+        {
+            if (vehicle.BodyHandle.Value == 0)
+            {
+                vehicle.InitBody();
+            }
+        }
+
         ScopedPlayersByEntity.TryAdd(guid, new());
         _shard.Entities.Add(guid, entity);
         OnAddedEntity(entity);

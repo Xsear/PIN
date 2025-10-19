@@ -288,6 +288,18 @@ public class DemoHarness : IDisposable
 
                     camera.OrientationQuaternion = cameraPitch * cameraOrientation;
                 }
+                else
+                {
+                    var delta = input.MouseDelta;
+                    if (delta.X != 0 || delta.Y != 0)
+                    {
+                        camera.Yaw += delta.X * _controls.MouseSensitivity;
+                        camera.Pitch += delta.Y * _controls.MouseSensitivity;
+
+                        QuaternionEx.CreateFromYawPitchRoll(-camera.Yaw, -camera.Pitch, 0, out var orientationQuaternion);
+                        camera.OrientationQuaternion = orientationQuaternion;
+                    }
+                }
             }
         }
 
@@ -348,8 +360,6 @@ public class DemoHarness : IDisposable
             }
 
             WriteInstantName(nameof(_controls.LockMouse), _controls.LockMouse);
-            WriteHoldableName(nameof(_controls.Grab), _controls.Grab);
-            WriteHoldableName(nameof(_controls.GrabRotate), _controls.GrabRotate);
             WriteHoldableName(nameof(_controls.MoveForward), _controls.MoveForward);
             WriteHoldableName(nameof(_controls.MoveBackward), _controls.MoveBackward);
             WriteHoldableName(nameof(_controls.MoveLeft), _controls.MoveLeft);
@@ -364,7 +374,6 @@ public class DemoHarness : IDisposable
             WriteInstantName(nameof(_controls.ShowContacts), _controls.ShowContacts);
             WriteInstantName(nameof(_controls.ShowBoundingBoxes), _controls.ShowBoundingBoxes);
             WriteInstantName(nameof(_controls.ChangeTimingDisplayMode), _controls.ChangeTimingDisplayMode);
-            WriteInstantName(nameof(_controls.ChangeDemo), _controls.ChangeDemo);
             WriteInstantName(nameof(_controls.ShowControls), _controls.ShowControls);
         }
         else

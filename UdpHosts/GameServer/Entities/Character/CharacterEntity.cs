@@ -51,7 +51,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
 
         InitFields();
         InitViews();
-        InitBody();
+        //InitBody();
     }
 
     public BaseController Character_BaseController { get; set; }
@@ -360,6 +360,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
 
     public int CurrentHealth { get; private set; } = 0;
     public int CurrentShields { get; private set; } = 0;
+
+    public PhysicsInfo PhysicsPoseInfo { get; set; }
 
     internal MovementStateContainer MovementStateContainer { get; set; } = new();
 
@@ -766,10 +768,28 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             Log.Debug("Physics Radius: {radius}", poseTypeRecord.PhysicsRadius);
             Log.Debug("Physics Height: {height}", poseTypeRecord.PhysicsHeight);
             Log.Debug("Physics Mass: {mass}", poseTypeRecord.PhysicsMass);
-            Log.Debug("PoseCollisionId (Standing): {collisionId}", poseTypeRecord.StandingCollisionid);
+
             Log.Debug("VisualGroup: {visualGroup}", battleframeRecord.VisualGroup);
             Log.Debug("VisualRecord: {visualRecord}", battleframeVisualRecord.Id);
+            Log.Debug("PoseCollisionId (Standing): {collisionId}", poseTypeRecord.StandingCollisionid);
+            Log.Debug("HitboxCollisionId: {collisionId}", battleframeVisualRecord.HitboxCollisionId);
             Log.Debug("RagdollCollisionId: {collisionId}", battleframeVisualRecord.RagdollCollisionId);
+
+            // Scale
+            // max_rand_scale, min_rand_scale
+            if (battleframeRecord.MinRandScale != battleframeRecord.MaxRandScale)
+            {
+                Log.Warning("Wtf battleframe {battleframe} has random scale: min: {min}, max: {max}", battleframeRecord.Id, battleframeRecord.MinRandScale, battleframeRecord.MaxRandScale);
+            }
+
+            PhysicsPoseInfo = new PhysicsInfo
+            {
+                RequiresRagdoll = charInfo.RequiresRagdoll == 1 ? true : false,
+                PoseTypeRecord = poseTypeRecord,
+                RagdollCollisionId = battleframeVisualRecord.RagdollCollisionId,
+                HitboxCollisionId = battleframeVisualRecord.HitboxCollisionId,
+                Scale = battleframeRecord.MinRandScale,
+            };
         }
     }
 
@@ -2290,7 +2310,10 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             MovementState = (ushort)MovementState,
             Time = Shard.CurrentTime
         };
-        Shard.Physics.UpdateEntity(this);
+        if (BodyHandle.Value != 0)
+        {
+            Shard.Physics.UpdateEntity(this);
+        }
     }
 
     private void RefreshAllStatusEffects()
@@ -2348,5 +2371,14 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         public uint WeaponId;
         public float Spread;
         public float RateOfFire;
+    }
+
+    public class PhysicsInfo
+    {
+        public bool RequiresRagdoll;
+        public PoseType PoseTypeRecord;
+        public uint RagdollCollisionId;
+        public uint HitboxCollisionId;
+        public float Scale = 1f;
     }
 }

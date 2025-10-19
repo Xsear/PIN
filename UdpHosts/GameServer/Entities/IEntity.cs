@@ -10,6 +10,7 @@ public interface IEntity
     EntityId AeroEntityId { get; }
     IShard Shard { get; }
     Vector3 Position { get; set; }
+    Quaternion Rotation { get; set; }
     BodyHandle BodyHandle { get; set; }
 
     bool IsInteractable();

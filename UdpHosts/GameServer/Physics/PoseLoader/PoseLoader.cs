@@ -68,7 +68,7 @@ public class PoseLoader
         try
         {
             var ini = IniLoader.LoadFromFile(path);
-            result = PoseData.LoadFromIni(ini);
+            result = PoseData.LoadFromIni(ini, _logger);
             _dataCache[assetId] = result;
             _logger.Debug("Loaded pose from {Path}", path);
             return true;
@@ -77,18 +77,6 @@ public class PoseLoader
         {
             _logger.Error(ex, "Failed to load pose from file {Path}", path);
             return false;
-        }
-    }
-
-    public void DoSomething(string id)
-    {
-        if (TryLoad(id, out var pose))
-        {
-            // Do something with pose
-        }
-        else
-        {
-            // Handle not found
         }
     }
 

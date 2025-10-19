@@ -4,6 +4,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
+using BepuUtilities;
 
 namespace GameServer.Physics.PoseLoader;
 
@@ -25,7 +26,7 @@ public class PoseUtil
             float.Parse(parts[2], CultureInfo.InvariantCulture));
     }
 
-    public static Matrix3x3 ParseMatrix3x3(string input)
+    public static Quaternion ParseRotation(string input)
     {
         var vectors = input.Split(new[] { '>' }, StringSplitOptions.RemoveEmptyEntries)
                            .Select(v => ParseVector3(v + ">")) // Add back '>' so it parses correctly
@@ -36,7 +37,24 @@ public class PoseUtil
             throw new FormatException($"Invalid Matrix3x3 format: {input}");
         }
 
-        return new Matrix3x3(vectors[0], vectors[1], vectors[2]);
+        var matrix = new Matrix4x4(
+            vectors[0][0],
+            vectors[0][1],
+            vectors[0][2],
+            0,
+            vectors[1][0],
+            vectors[1][1],
+            vectors[1][2],
+            0,
+            vectors[2][0],
+            vectors[2][1],
+            vectors[2][2],
+            0,
+            0,
+            0,
+            0,
+            0);
+        return Quaternion.Normalize(Quaternion.CreateFromRotationMatrix(matrix));
     }
 
     public static float? TryParseFloat(string? input)
@@ -58,6 +76,4 @@ public class PoseUtil
 
         return null;
     }
-
-    public record Matrix3x3(Vector3 Row1, Vector3 Row2, Vector3 Row3);
 }

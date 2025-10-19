@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -12,8 +13,11 @@ using BepuUtilities.Memory;
 using GameServer.Data.SDB.Records.dbitems;
 using GameServer.Entities;
 using GameServer.Entities.Character;
+using GameServer.Entities.Vehicle;
+using GameServer.Physics.PoseLoader;
 using GameServer.Systems.ProjectileSim;
 using Serilog;
+using static GameServer.Physics.PoseLoader.PoseData;
 
 namespace GameServer.Physics;
 
@@ -37,12 +41,31 @@ public class PhysicsEngine
     private TypedIndex _defaultCharacterShape;
     private Dictionary<BodyHandle, ulong> _bodyToEntityId = new();
 
-    public PhysicsEngine(IShard shard, ILogger logger, GameServerSettings settings, ProjectileSim projectileSim)
+    /// <summary>
+    ///     AssetId + Scale to Shape (TypedIndex) cache
+    ///     This ensures we don't store duplicates of the same shapes, well, except for the actual primitives used... :thinking:
+    /// </summary>
+    private Dictionary<AssetCompoundKey, CompoundCacheEntry> _compoundCache = new();
+
+    /// <summary>
+    ///     (Pose) AssetId to Compound based metadata (Same for all Scales)
+    ///     This is so that we can look up the source Pose data. It's dependant on the Compound generation for the child index, but those will be the same for all Scales.
+    /// </summary>
+    private Dictionary<uint, Dictionary<int, ActivePoseShapeData>> _assetIdToPoseCompoundData = new();
+
+    /// <summary>
+    ///     Compound/Shape (TypedIndex) to AssetId
+    ///     When we have a hit and want to go look up the extra data, we need the asset id.
+    /// </summary>
+    private Dictionary<TypedIndex, uint> _poseCompoundToAssetId = new();
+
+    public PhysicsEngine(IShard shard, ILogger logger, GameServerSettings settings, ProjectileSim projectileSim, PoseLoader.PoseLoader poseLoader)
     {
         _shard = shard;
         _logger = logger;
         _settings = settings;
         _projectileSim = projectileSim;
+        PoseLoader = poseLoader;
 
         // Determine number of threads to use
         var targetThreadCount = int.Max(1,
@@ -64,6 +87,31 @@ public class PhysicsEngine
         // Simulation.Shapes.Add(new Sphere(0.9f));
         // new Cylinder(0.4f * 1.2f, 1.6f * 1.2f)
         // Simulation.Shapes.Add(new Cylinder(0.4f, 1.6f));
+
+        if (false)
+        {
+            var builder = new CompoundBuilder(BufferPool, Simulation.Shapes, 3);
+
+            var pose1 = RigidPose.Identity;
+            var pose2 = RigidPose.Identity;
+            var pose3 = RigidPose.Identity;
+
+            var globe1 = Simulation.Shapes.Add(new Sphere(1.2f));
+            pose1.Position = new Vector3(0, 0, 2 + 1.2f);
+            builder.AddForKinematic(globe1, pose1, -1);
+
+            var globe2 = Simulation.Shapes.Add(new Sphere(1.2f));
+            pose2.Position = new Vector3(0, 0, 4 + 1.2f);
+            builder.AddForKinematic(globe1, pose2, -1);
+
+            builder.BuildKinematicCompound(out var children, out Vector3 center);
+            var compound = new Compound(children);
+            var shape = Simulation.Shapes.Add(compound);
+
+            pose3 = RigidPose.Identity;
+            pose3.Position = new Vector3(-1.5f, 3f, 0f + center.Z);
+            var body = Simulation.Bodies.Add(BodyDescription.CreateKinematic(pose3, shape, -1));
+        }
 
         // Load zone
         if (_settings.LoadMapsCollision)
@@ -92,6 +140,7 @@ public class PhysicsEngine
     public double TimeAccumulator { get; protected set; }
     public TagfileLoader TagfileLoader { get; private set; }
     public ZoneLoader.ZoneLoader ZoneLoader { get; private set; }
+    public PoseLoader.PoseLoader PoseLoader { get; private set; }
 
     public void Tick(double deltaTime, ulong currentTime, CancellationToken ct)
     {
@@ -103,6 +152,213 @@ public class PhysicsEngine
         }
     }
 
+    public struct ActivePoseShapeData
+    {
+        public TypedIndex ShapeId;
+        public ShapeFlags ShapeFlags;
+        public int Material;
+        public string Name;
+        public float DamageMod = 1.0f;
+        public string HitTagType = "Default";
+
+        public ActivePoseShapeData()
+        {
+        }
+    }
+
+    public struct EntityData
+    {
+        public ulong EntityId;
+        public uint PoseId;
+    }
+
+    public (CompoundCacheEntry, Dictionary<int, ActivePoseShapeData>) CreateActivePose(PoseData poseDef, float scale = 1f)
+    {
+        var result = new Dictionary<int, ActivePoseShapeData>();
+        var builder = new CompoundBuilder(BufferPool, Simulation.Shapes, poseDef.Shapes.Capacity);
+        QuaternionEx.GetQuaternionBetweenNormalizedVectors(Vector3.UnitY, Vector3.UnitZ, out Quaternion rotateYToZ);
+        int childIndex = 0; // We need this for lookups so we manually track it...
+        foreach (var (name, shapeDef) in poseDef.Shapes)
+        {
+            if (name == "CatchAll" || name == "NPCWarning")
+            {
+                // TODO: CatchAll and NPCWarning should have some separate collision check but don't know how it should work yet
+                continue;
+            }
+
+            TypedIndex shapeId;
+            var pose = RigidPose.Identity;
+            pose.Position = shapeDef.Origin;
+
+            if (shapeDef.Type == ShapeType.HKX)
+            {
+                _logger.Debug("HKX shape {Filename}", shapeDef.Filename);
+
+                var assetId = shapeDef.Filename;
+                var assetPath = $"{_settings.AssetsPath}\\{assetId}.pinasset.json";
+                var statics = TagfileLoader.TEMP_ProcessRigidBody(Vector3.Zero, assetPath);
+                for (int i = 0; i < statics.Length; i++)
+                {
+                    var stat = statics[i];
+                    var statPose = stat.Pose;
+                    statPose.Position += pose.Position;
+                    var statShapeId = stat.Shape;
+
+                    builder.AddForKinematic(statShapeId, statPose, -1);
+                    result.Add(childIndex++, new ActivePoseShapeData()
+                    {
+                        DamageMod = 1.0f,
+                        HitTagType = shapeDef.HitTagType,
+                        Material = shapeDef.Material ?? 0,
+                        Name = shapeDef.Name,
+                        ShapeFlags = shapeDef.Flags,
+                        ShapeId = statShapeId,
+                    });
+                }
+            }
+            else
+            {
+                switch (shapeDef.Type)
+                {
+                    case ShapeType.Capsule:
+                        var capsuleRadius = (float)shapeDef.Radius * scale;
+                        var capsuleHeight = (float)shapeDef.Height * scale;
+                        shapeId = Simulation.Shapes.Add(new Capsule(capsuleRadius, capsuleHeight));
+                        pose.Position = shapeDef.Origin * scale;
+                        pose.Orientation = (Quaternion)shapeDef.Rotation * rotateYToZ;
+                        break;
+                    case ShapeType.Cylinder:
+                        var cylinderRadius = (float)shapeDef.Radius * scale;
+                        var cylinderHeight = (float)shapeDef.Height * scale;
+                        shapeId = Simulation.Shapes.Add(new Cylinder(cylinderRadius, cylinderHeight));
+                        pose.Position = shapeDef.Origin * scale;
+                        pose.Orientation = (Quaternion)shapeDef.Rotation * rotateYToZ;
+                        break;
+                    case ShapeType.Sphere:
+                        shapeId = Simulation.Shapes.Add(new Sphere((float)shapeDef.Radius * scale));
+                        pose.Position = shapeDef.Origin * scale;
+                        break;
+                    case ShapeType.Triangle:
+                        shapeId = Simulation.Shapes.Add(new Triangle((Vector3)shapeDef.Vertex0, (Vector3)shapeDef.Vertex1, (Vector3)shapeDef.Vertex2));
+                        break;
+                    default:
+                        _logger.Debug("Unhandled shape type {type}", shapeDef.Type);
+                        shapeId = Simulation.Shapes.Add(new Sphere((float)shapeDef.Radius));
+                        break;
+                }
+
+                builder.AddForKinematic(shapeId, pose, -1);
+
+                // FIXME: The HKX route will add multiple children so the child index no longer aligns with the shape defs
+                result.Add(childIndex++, new ActivePoseShapeData()
+                {
+                    DamageMod = 1.0f,
+                    HitTagType = shapeDef.HitTagType,
+                    Material = shapeDef.Material ?? 0,
+                    Name = shapeDef.Name,
+                    ShapeFlags = shapeDef.Flags,
+                    ShapeId = shapeId,
+                });
+            }
+        }
+
+        builder.BuildKinematicCompound(out var children, out Vector3 center);
+        var compound = new Compound(children);
+
+        // Origin at bottom
+        //compound.ComputeBounds(RigidPose.Identity.Orientation, Simulation.Shapes, out var min, out var max);
+        Vector3 offset = new Vector3(0, 0, center.Z);
+        for (int i = 0; i < childIndex + 1; ++i)
+        {
+            ref var child = ref compound.Children[i];
+            child.LocalPosition += offset;
+        }
+
+        var entry = new CompoundCacheEntry
+        {
+            ShapeIndex = Simulation.Shapes.Add(compound)
+        };
+
+        return (entry, result);
+    }
+
+    public TypedIndex GetAssetShape(uint assetId, float scale = 1f)
+    {
+        var key = new AssetCompoundKey(assetId, scale);
+
+        if (_compoundCache.TryGetValue(key, out var cacheEntry))
+        {
+            return cacheEntry.ShapeIndex;
+        }
+
+        var ok = PoseLoader.TryLoad(assetId.ToString("D8"), out var poseDef);
+        if (ok)
+        {
+            _logger.Debug("PoseLoader OK");
+            var (entry, result) = CreateActivePose(poseDef, scale);
+            _compoundCache[key] = entry;
+            _assetIdToPoseCompoundData.TryAdd(assetId, result);
+            _poseCompoundToAssetId.Add(entry.ShapeIndex, assetId);
+            return entry.ShapeIndex;
+        }
+
+        _logger.Debug("Returning fallback shape for assetId {assetId}", assetId);
+        return _defaultCharacterShape;
+    }
+
+    public TypedIndex GetCharacterShape(CharacterEntity character)
+    {
+        var mov = character.MovementStateContainer;
+        var movestate = character.MovementStateContainer.Movestate;
+        var info = character.PhysicsPoseInfo;
+        if (info == null)
+        {
+            _logger.Debug("GetCharacterShape but no PhysicsPoseInfo");
+            return _defaultCharacterShape;
+        }
+
+        uint collisionId = info.PoseTypeRecord.StandingCollisionid;
+
+        if (info.PoseTypeRecord.PoseId == 0)
+        {
+            // Pose type 0 provides on collision ids so let's look at the visual record instead
+            if (info.HitboxCollisionId != 0)
+            {
+                collisionId = info.HitboxCollisionId;
+            }
+            else if (info.RagdollCollisionId != 0)
+            {
+                collisionId = info.RagdollCollisionId;
+            }
+            else
+            {
+                _logger.Warning("No suitable collisionId found during GetCharacterShape");
+            }
+        }
+        else if (movestate == Movestate.Falling)
+        {
+            collisionId = info.PoseTypeRecord.FallingCollisionid;
+        }
+        else if (movestate == Movestate.Knockdown || movestate == Movestate.KnockdownFalling)
+        {
+            collisionId = info.PoseTypeRecord.ProneCollisionid;
+        }
+        else if (mov.Crouch)
+        {
+            collisionId = info.PoseTypeRecord.CrouchedCollisionid;
+        }
+        else if (mov.Sprint)
+        {
+            collisionId = info.PoseTypeRecord.SprintingCollisionid;
+        }
+        else if (movestate == Movestate.Running)
+        {
+            collisionId = info.PoseTypeRecord.RunningCollisionid;
+        }
+
+        return GetAssetShape(collisionId, character.PhysicsPoseInfo.Scale);
+    }
+
     public BodyHandle CreateKineticEntity(CharacterEntity entity)
     {
         var pose = new RigidPose
@@ -110,7 +366,23 @@ public class PhysicsEngine
             Position = entity.Position,
             Orientation = entity.Rotation
         };
-        var body = Simulation.Bodies.Add(BodyDescription.CreateKinematic(pose, _defaultCharacterShape, -1));
+        var shape = GetCharacterShape(entity);
+
+        var body = Simulation.Bodies.Add(BodyDescription.CreateKinematic(pose, shape, 1));
+        _bodyToEntityId[body] = entity.EntityId;
+
+        return body;
+    }
+
+    public BodyHandle CreateKineticEntity(VehicleEntity entity)
+    {
+        var pose = new RigidPose
+        {
+            Position = entity.Position,
+            Orientation = entity.Rotation
+        };
+        var shape = GetAssetShape(entity.PhysicsPoseInfo.RemotePoseFile, entity.PhysicsPoseInfo.Scale);
+        var body = Simulation.Bodies.Add(BodyDescription.CreateKinematic(pose, shape, 1));
         _bodyToEntityId[body] = entity.EntityId;
 
         return body;
@@ -118,16 +390,41 @@ public class PhysicsEngine
 
     public void UpdateEntity(CharacterEntity entity)
     {
-        ref var currentPose = ref Simulation.Bodies[entity.BodyHandle].Pose;
-        currentPose.Position = entity.Position;
-        currentPose.Position.Z += _tempBodySphereSize; // Body size with scale
-        currentPose.Orientation = Quaternion.Inverse(entity.Rotation);
+        // Handle pose shape change
+        var body = Simulation.Bodies[entity.BodyHandle];
+        var expectedShape = GetCharacterShape(entity); // Maybe it would be better to determine the pose id on the character and update accordingly here
+        if (body.Collidable.Shape != expectedShape)
+        {
+            body.SetShape(expectedShape);
+        }
 
+        // Handle position and orientation
+        ref var currentPose = ref Simulation.Bodies[entity.BodyHandle].Pose;
+        currentPose.Orientation = Quaternion.Inverse(entity.Rotation);
+        currentPose.Position = entity.Position;
+
+        // Handle debug viewer focus
         if (entity.EntityId == DebugViewEntity)
         {
             DebugViewPose = currentPose;
             DebugViewHeading = new Vector2(entity.HeadingYaw, entity.HeadingPitch);
         }
+    }
+
+    public void UpdateEntity(VehicleEntity entity)
+    {
+        // Handle position and orientation
+        ref var currentPose = ref Simulation.Bodies[entity.BodyHandle].Pose;
+        currentPose.Orientation = Quaternion.Inverse(entity.Rotation);
+        currentPose.Position = entity.Position;
+    }
+
+    public void UpdateEntity(IEntity entity)
+    {
+        // Handle position and orientation
+        ref var currentPose = ref Simulation.Bodies[entity.BodyHandle].Pose;
+        currentPose.Orientation = Quaternion.Inverse(entity.Rotation);
+        currentPose.Position = entity.Position;
     }
 
     public void ProjectileRayCast(ProjectileSim.ProjectileData projectile)
@@ -165,8 +462,17 @@ public class PhysicsEngine
                     _logger.Debug("ProjectileRayCast Impact Entity {hitEntity}", hitEntity);
                     if (hitEntity != null)
                     {
+                        var body = Simulation.Bodies[hitHandler.HitCollidable.BodyHandle];
+                        var shape = body.Collidable.Shape;
+                        if (_poseCompoundToAssetId.ContainsKey(shape))
+                        {
+                            var poseId = _poseCompoundToAssetId[shape];
+                            var poseData = _assetIdToPoseCompoundData[poseId];
+                            var poseShapeData = poseData[hitHandler.ChildIndex];
+                            _logger.Debug($"ProjectileRayCast Impact on {poseShapeData.Name}");
+                        }
+
                         var bodyPosition = Simulation.Bodies[hitHandler.HitCollidable.BodyHandle].Pose.Position;
-                        bodyPosition.Z -= _tempBodySphereSize; // Body size with scale
                         SendDebugProjectilePoseHit(source, trace, hitPosition, bodyPosition, hitEntity);
 
                         var hit = new ProjectileSim.HitData
@@ -350,6 +656,7 @@ public class PhysicsEngine
         public bool AvoidSourceBody;
         public BodyHandle SourceBody;
         public Vector3 Normal;
+        public int ChildIndex;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AllowTest(CollidableReference collidable)
@@ -391,6 +698,46 @@ public class PhysicsEngine
             T = t;
             HitCollidable = collidable;
             Normal = normal;
+            ChildIndex = childIndex;
         }
     }
+}
+
+public struct AssetCompoundKey : IEquatable<AssetCompoundKey>
+{
+    public uint AssetId;
+    public float Scale;
+
+    public AssetCompoundKey(uint assetId, float scale)
+    {
+        AssetId = assetId;
+        Scale = scale;
+    }
+
+    public bool Equals(AssetCompoundKey other)
+    {
+        return AssetId == other.AssetId &&
+               BitConverter.SingleToInt32Bits(Scale) == BitConverter.SingleToInt32Bits(other.Scale);
+    }
+
+    public override bool Equals(object obj)
+    {
+        return obj is AssetCompoundKey other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = 17;
+            hash = (hash * 31) + AssetId.GetHashCode();
+            hash = (hash * 31) + BitConverter.SingleToInt32Bits(Scale);
+            return hash;
+        }
+    }
+}
+
+public struct CompoundCacheEntry
+{
+    public TypedIndex ShapeIndex;
 }

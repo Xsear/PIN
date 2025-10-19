@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using BepuPhysics;
 using BepuPhysics.Collidables;
 using BepuUtilities;
@@ -13,6 +17,11 @@ namespace GameServer.Physics;
 
 public class TagfileLoader
 {
+    private readonly JsonSerializerOptions _serializerOptions = new()
+    {
+        IncludeFields = true,
+        PropertyNameCaseInsensitive = true
+    };
     private readonly ILogger _logger;
 
     public TagfileLoader(Simulation simulation, BufferPool pool, ThreadDispatcher dispatcher, ILogger logger)
@@ -21,15 +30,37 @@ public class TagfileLoader
         Simulation = simulation;
         BufferPool = pool;
         ThreadDispatcher = dispatcher;
+
+        _serializerOptions.Converters.Add(new TagfileObjectJsonConverter());
+        _serializerOptions.Converters.Add(new Vector4Converter());
+        _serializerOptions.Converters.Add(new Vector3Converter());
+        _serializerOptions.Converters.Add(new StringBooleanConverter());
     }
 
     public Simulation Simulation { get; protected set; }
     public BufferPool BufferPool { get; private set; }
     public ThreadDispatcher ThreadDispatcher { get; private set; }
 
-    public StaticDescription[] AddStaticShape()
+    public StaticDescription[] TEMP_ProcessRigidBody(Vector3 origin, string path)
     {
-        return null;
+        _logger.Debug("TEMP_ProcessRigidBody {path}", path);
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            TagfileAsset asset = JsonSerializer.Deserialize<TagfileAsset>(json, _serializerOptions);
+
+            var myLayer = asset as ITagfileExternalStorage;
+            var root = asset.GetTagfileObject("#0001");
+            var statics = TEMP_ProcessChunkObject(root, ref myLayer);
+
+            return statics;
+        }
+        catch (Exception e)
+        {
+            _logger.Error("TEMP_ProcessRigidBody Failed {exceptionMessage} ({exceptionType}) on {path}\n{more}", e.Message, e.GetType().Name, path, e.StackTrace);
+            return [];
+        }
     }
 
     public StaticDescription[] TEMP_ProcessChunkObject(BaseTagfileObject obj, ref ITagfileExternalStorage layer)
@@ -60,6 +91,10 @@ public class TagfileLoader
                 return ProcessContainer(list, ref layer);
             case HkpMoppBvTreeShapeObject moppBvTree:
                 return ProcessContainer(moppBvTree, ref layer);
+            case HkRootLevelContainerObject rootContainer:
+                return ProcessContainer(rootContainer, ref layer);
+            case HkpRigidBody rigidBody:
+                return ProcessContainer(rigidBody, ref layer);
 
             // Modifiers
             case HkpConvexTranslateShapeObject convexTranslate:
@@ -101,6 +136,70 @@ public class TagfileLoader
         return ProcessChunkObject(childObj, ref layer);
     }
 
+    private StaticDescription[] ProcessContainer(HkRootLevelContainerObject obj, ref ITagfileExternalStorage layer)
+    {
+        List<StaticDescription> result = new();
+
+        foreach (var namedVariant in obj.NamedVariants)
+        {
+            var childObj = layer.GetTagfileObject(namedVariant.Variant);
+
+            if (childObj.Class != "hkpRigidBody")
+            {
+                _logger.Warning("Ignoring named variant {name} {class}", childObj.Name, childObj.Class);
+                continue;
+            }
+
+            try
+            {
+                var childStaticArr = ProcessChunkObject(childObj, ref layer);
+                result.AddRange(childStaticArr);
+            }
+            catch (NotImplementedException)
+            {
+                _logger.Warning("Ignoring child {childObject} of {parentObject} because support is not implemented", childObj, obj);
+            }
+        }
+
+        return result.ToArray();
+    }
+
+    private StaticDescription[] ProcessContainer(HkpRigidBody obj, ref ITagfileExternalStorage layer)
+    {
+        var childShapeObj = layer.GetTagfileObject(obj.Collidable.Shape);
+        var childShapeStaticArr = ProcessChunkObject(childShapeObj, ref layer);
+        var transformObj = obj.Motion.Transform;
+
+        var pos = new Vector3(transformObj[3][0], transformObj[3][1], transformObj[3][2]);
+
+        _logger.Debug("HkpRigidBody pos to {x}, {y}, {z}", pos.X, pos.Y, pos.Z);
+        var matrix = new Matrix4x4(
+            transformObj[0][0],
+            transformObj[0][1],
+            transformObj[0][2],
+            0,
+            transformObj[1][0],
+            transformObj[1][1],
+            transformObj[1][2],
+            0,
+            transformObj[2][0],
+            transformObj[2][1],
+            transformObj[2][2],
+            0,
+            0,
+            0,
+            0,
+            0);
+        var rot = Quaternion.Normalize(Quaternion.CreateFromRotationMatrix(matrix));
+
+        return childShapeStaticArr.Select((StaticDescription childShapeStatic) =>
+        {
+            childShapeStatic.Pose.Orientation = rot; // rot * childShapeStatic.Pose.Orientation;
+            childShapeStatic.Pose.Position = pos;
+            return childShapeStatic;
+        }).ToArray();
+    }
+
     private StaticDescription[] ProcessModifier(HkpConvexTranslateShapeObject obj, ref ITagfileExternalStorage layer)
     {
         var childShapeObj = layer.GetTagfileObject(obj.ChildShape);
@@ -137,7 +236,7 @@ public class TagfileLoader
                 mesh.Recenter(-childShapeStatic.Pose.Position);
             }
 
-            childShapeStatic.Pose.Orientation = rot;
+            childShapeStatic.Pose.Orientation = rot; // rot * childShapeStatic.Pose.Orientation;
             childShapeStatic.Pose.Position = pos;
             return childShapeStatic;
         }).ToArray();
@@ -170,7 +269,7 @@ public class TagfileLoader
 
         return childShapeStaticArr.Select((StaticDescription childShapeStatic) =>
         {
-            childShapeStatic.Pose.Orientation = rot;
+            childShapeStatic.Pose.Orientation = rot; // rot * childShapeStatic.Pose.Orientation;
             childShapeStatic.Pose.Position = pos;
             return childShapeStatic;
         }).ToArray();
@@ -192,15 +291,14 @@ public class TagfileLoader
 
     private StaticDescription[] ProcessShape(HkpCapsuleShapeObject obj, ref ITagfileExternalStorage layer)
     {
+        var rad = obj.Radius;
         var top = new Vector3(obj.VertexA[0], obj.VertexA[1], obj.VertexA[2]);
         var bot = new Vector3(obj.VertexB[0], obj.VertexB[1], obj.VertexB[2]);
         var mid = Vector3.Multiply(Vector3.Add(top, bot), 0.5f);
         var len = Vector3.Distance(top, bot);
         var dir = Vector3.Normalize(Vector3.Subtract(bot, top));
-        var up = new Vector3(0, 1, 0); // yes... idk why
-
-        QuaternionEx.GetQuaternionBetweenNormalizedVectors(up, dir, out Quaternion rot);
-        var rad = obj.Radius;
+        var up = new Vector3(0, 1, 0); // Since the Capsule is Y-aligned in BepuPhysics
+        QuaternionEx.GetQuaternionBetweenNormalizedVectors(up, dir, out Quaternion rot); // Rotate from Y-aligned to the Z-aligned based direction
         var capsule = new Capsule(rad, len);
 
         var pose = RigidPose.Identity;
@@ -346,6 +444,29 @@ public class TagfileLoader
             _logger.Error("Failed to process hkpConvexVerticesShape {pointer}. Exception: {exceptionMessage} ({exceptionType}) \n{more}", obj.Name, ex.Message, ex.GetType().Name, ex.StackTrace);
             var box = new Box(0.5f * 2, 0.5f * 2, 0.5f * 2);
             return [new StaticDescription(RigidPose.Identity, Simulation.Shapes.Add(box))];
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class TagfileAsset : ITagfileExternalStorage
+    {
+        public VertBlockContent[] VertBlocks { get; set; }
+        public IndiceBlockContent[] IndiceBlocks { get; set; }
+
+        [JsonConverter(typeof(TagfileObjectDictionaryConverter))]
+        public Dictionary<string, BaseTagfileObject> TagfileObjects { get; set; }
+
+        public BaseTagfileObject GetTagfileObject(string query)
+        {
+            TagfileObjects.TryGetValue(query, out BaseTagfileObject result);
+
+            if (result != null)
+            {
+                return result;
+            }
+
+            Console.WriteLine($"Failed to find TagfileObject with query {query}");
+            return null;
         }
     }
 }

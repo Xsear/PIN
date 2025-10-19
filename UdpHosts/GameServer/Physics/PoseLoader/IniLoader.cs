@@ -45,6 +45,12 @@ public static class IniLoader
                 var key = line.Substring(0, separatorIndex).Trim();
                 var value = line[(separatorIndex + 1)..].Trim();
 
+                // Remove surrounding quotes if present
+                if (value.StartsWith("\"") && value.EndsWith("\"") && value.Length >= 2)
+                {
+                    value = value.Substring(1, value.Length - 2);
+                }
+
                 if (!iniData.Sections.ContainsKey(currentSection))
                 {
                     iniData.Sections[currentSection] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

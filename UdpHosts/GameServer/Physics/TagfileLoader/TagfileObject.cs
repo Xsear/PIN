@@ -161,7 +161,7 @@ public class HkRootLevelContainerObject : BaseTagfileObject
 public class HkpRigidBody : BaseTagfileObject
 {
     public CollidableData Collidable;
-    public MotionData Motion;
+    public MotionStateData Motion;
 
     public struct CollidableData
     {

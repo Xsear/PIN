@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
+using Serilog;
 using static GameServer.Physics.PoseLoader.PoseUtil;
 
 namespace GameServer.Physics.PoseLoader;
@@ -23,8 +24,13 @@ public class PoseData
         Unknown
     }
 
-    public static PoseData LoadFromIni(IniData ini)
+    public static PoseData LoadFromIni(IniData ini, ILogger logger)
     {
+        foreach (var (section, data) in ini.Sections)
+        {
+            logger.Debug("Section {section}", section);
+        }
+
         var file = ini.Sections.GetValueOrDefault("File");
         if (file == null)
         {
@@ -33,6 +39,10 @@ public class PoseData
 
         if (file.GetValueOrDefault("Version") != "1" || file.GetValueOrDefault("Type") != "Pose" || file.GetValueOrDefault("Name") == null)
         {
+            foreach (var (field, value) in file)
+            {
+                logger.Debug("File field {field} - {value}", field, value);
+            }
             throw new InvalidDataException(".pose file invalid File section");
         }
 
@@ -67,18 +77,31 @@ public class PoseData
                 Origin = ParseVector3(values.GetValueOrDefault("Origin") ?? "<0 0 0>"),
                 Radius = TryParseFloat(values.GetValueOrDefault("Radius")),
                 Height = TryParseFloat(values.GetValueOrDefault("Height")),
-                Material = TryParseInt(values.GetValueOrDefault("Material"))
+                Filename = TryParseFilename(values.GetValueOrDefault("Filename")?.Trim('"') ?? string.Empty),
+                Material = TryParseInt(values.GetValueOrDefault("Material")),
             };
 
             if (values.TryGetValue("Rotation", out var rotStr))
             {
-                shape.Rotation = ParseMatrix3x3(rotStr);
+                shape.Rotation = ParseRotation(rotStr);
             }
 
             shapes[name] = shape;
         }
 
         return shapes;
+    }
+
+    // "00213000\\00213550.HKX";
+    public static string TryParseFilename(string input)
+    {
+        int lastIndex = input.LastIndexOf('\\');
+        if (lastIndex >= 0)
+        {
+            return Path.GetFileNameWithoutExtension(input.Substring(lastIndex + 1));
+        }
+
+        return string.Empty;
     }
 
     public static ShapeFlags ParseFlags(string flagString)
@@ -166,11 +189,15 @@ public class PoseData
         public ShapeType Type { get; set; } = ShapeType.Unknown;
         public ShapeFlags Flags { get; set; } = new ShapeFlags();
         public Vector3 Origin { get; set; }
-        public Matrix3x3? Rotation { get; set; }
+        public Quaternion? Rotation { get; set; }
         public float? Radius { get; set; }
         public float? Height { get; set; }
         public int? Material { get; set; }
         public float? DamageMod { get; set; }
         public string? HitTagType { get; set; }
+        public Vector3? Vertex0 { get; set; }
+        public Vector3? Vertex1 { get; set; }
+        public Vector3? Vertex2 { get; set; }
+        public string Filename { get; set; } = string.Empty;
     }
 }

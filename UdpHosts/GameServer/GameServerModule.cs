@@ -100,6 +100,28 @@ public class GameServerModule : Module
                     }
                 }
 
+                if (ConfigurationManager.AppSettings["AssetDBPath"] != null)
+                {
+                    settings.AssetDBPath = ConfigurationManager.AppSettings["AssetDBPath"];
+                }
+
+                if (ConfigurationManager.AppSettings["AssetsPath"] != null)
+                {
+                    settings.AssetsPath = ConfigurationManager.AppSettings["AssetsPath"];
+                }
+
+                if (ConfigurationManager.AppSettings["PhysicsDebugViewer"] != null)
+                {
+                    if (bool.TryParse(ConfigurationManager.AppSettings["PhysicsDebugViewer"], out bool value))
+                    {
+                        settings.PhysicsDebugViewer = value;
+                    }
+                    else
+                    {
+                        Log.Error("Cannot parse PhysicsDebugViewer setting value");
+                    }
+                }
+
                 return settings;
             })
             .As<GameServerSettings>().SingleInstance();

@@ -78,12 +78,12 @@ namespace DemoRenderer
             /*
             get
             {
-                QuaternionEx.CreateFromYawPitchRoll(-yaw, -pitch, 0, out var orientationQuaternion);
+                QuaternionEx.CreateFromYawPitchRoll(0, -pitch, -yaw, out var orientationQuaternion);
                 return orientationQuaternion;
             }
             set
             {
-                
+
             }
             */
         }

@@ -70,7 +70,6 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget
     public INetworkPlayer OwningPlayer { get; set; }
     public bool IsPlayerOwned => OwningPlayer != null;
 
-    public Quaternion Rotation { get; set; } = Quaternion.Identity;
     public Vector3 Velocity { get; set; } = new Vector3();
     public Vector3 AimDirection { get; set; } = new Vector3(0.70707911253f, 0.707134246826f, 0.000504541851114f); // Look kinda forward instead of up
     public short MovementState { get; set; } = unchecked((short)0x8000);
@@ -376,8 +375,8 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget
         Console.WriteLine($"Vehicle.SetStatusEffect Index {index}, Time {time}, Id {data.Id}");
 
         // Member
-        this.GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
-        this.GetType().GetProperty($"StatusEffects_{index}").SetValue(this, data, null);
+        GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
+        GetType().GetProperty($"StatusEffects_{index}").SetValue(this, data, null);
 
         // CombatController
         if (Vehicle_CombatController != null)
@@ -396,8 +395,8 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget
         Console.WriteLine($"Character.ClearStatusEffect Index {index}, Time {time}, Id {debugEffectId}");
 
         // Member
-        this.GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
-        this.GetType().GetProperty($"StatusEffects_{index}").SetValue(this, null, null);
+        GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
+        GetType().GetProperty($"StatusEffects_{index}").SetValue(this, null, null);
 
         // CombatController
         if (Vehicle_CombatController != null)

@@ -26,7 +26,6 @@ public sealed class DeployableEntity : BaseAptitudeEntity, IAptitudeTarget
 
     public INetworkPlayer Player { get; set; }
     public bool IsPlayerOwned => Player != null;
-    public Quaternion Orientation { get; set; }
     public Vector3 AimPosition => Position;
     public Vector3 AimDirection { get; set; }
     public HostilityInfoData HostilityInfo { get; set; }
@@ -111,8 +110,8 @@ public sealed class DeployableEntity : BaseAptitudeEntity, IAptitudeTarget
         Console.WriteLine($"Deployable.SetStatusEffect Index {index}, Time {time}, Id {data.Id}");
 
         // Member
-        this.GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
-        this.GetType().GetProperty($"StatusEffects_{index}").SetValue(this, data, null);
+        GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
+        GetType().GetProperty($"StatusEffects_{index}").SetValue(this, data, null);
 
         // ObserverView
         Deployable_ObserverView.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop").SetValue(Deployable_ObserverView, time, null);
@@ -124,8 +123,8 @@ public sealed class DeployableEntity : BaseAptitudeEntity, IAptitudeTarget
         Console.WriteLine($"Deployable.ClearStatusEffect Index {index}, Time {time}, Id {debugEffectId}");
 
         // Member
-        this.GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
-        this.GetType().GetProperty($"StatusEffects_{index}").SetValue(this, null, null);
+        GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
+        GetType().GetProperty($"StatusEffects_{index}").SetValue(this, null, null);
 
         // ObserverView
         Deployable_ObserverView.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop").SetValue(Deployable_ObserverView, time, null);
@@ -140,8 +139,8 @@ public sealed class DeployableEntity : BaseAptitudeEntity, IAptitudeTarget
 
     public void SetRotation(Quaternion newRotation)
     {
-        Orientation = newRotation;
-        Deployable_ObserverView.OrientationProp = Orientation;
+        Rotation = newRotation;
+        Deployable_ObserverView.OrientationProp = Rotation;
     }
 
     public void SetOrientation(Quaternion newRotation) => SetRotation(newRotation);
@@ -170,7 +169,7 @@ public sealed class DeployableEntity : BaseAptitudeEntity, IAptitudeTarget
     private void InitFields()
     {
         Position = new Vector3();
-        Orientation = Quaternion.Identity;
+        Rotation = Quaternion.Identity;
         AimDirection = new Vector3(0.70707911253f, 0.707134246826f, 1f);
         HostilityInfo = new HostilityInfoData { Flags = 0 | HostilityInfoData.HostilityFlags.Faction, FactionId = 1 };
         ConstructedTime = Shard.CurrentTime;
@@ -184,7 +183,7 @@ public sealed class DeployableEntity : BaseAptitudeEntity, IAptitudeTarget
             OwningEntityProp = Owner?.AeroEntityId ?? new EntityId { Backing = 0 },
             AbilitySrcIdProp = AbilitySrcId,
             PositionProp = Position,
-            OrientationProp = Orientation,
+            OrientationProp = Rotation,
             AimPositionProp = AimPosition,
             AimDirectionProp = AimDirection,
             ConstructedTimeProp = ConstructedTime,

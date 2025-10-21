@@ -51,7 +51,6 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
 
         InitFields();
         InitViews();
-        //InitBody();
     }
 
     public BaseController Character_BaseController { get; set; }
@@ -67,7 +66,6 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
 
     public INetworkPlayer Player { get; set; }
     public bool IsPlayerControlled => Player != null;
-    public Quaternion Rotation { get; set; }
     public Vector3 Velocity { get; set; }
     public Vector3 AimDirection { get; set; }
     public short MovementState { get; set; }

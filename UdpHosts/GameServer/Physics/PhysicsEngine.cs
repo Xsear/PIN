@@ -354,7 +354,7 @@ public class PhysicsEngine
             return _entityIdToBody[entity.EntityId];
         }
 
-        var pose = new RigidPose(entity.Position, entity.Rotation);
+        var pose = new RigidPose(entity.Position, Quaternion.Inverse(entity.Rotation));
         var shape = GetCharacterShape(entity);
         var body = Simulation.Bodies.Add(BodyDescription.CreateKinematic(pose, shape, 1));
         _bodyToEntityId[body] = entity.EntityId;
@@ -371,7 +371,7 @@ public class PhysicsEngine
             return _entityIdToBody[entity.EntityId];
         }
 
-        var pose = new RigidPose(entity.Position, entity.Rotation);
+        var pose = new RigidPose(entity.Position, Quaternion.Inverse(entity.Rotation));
         var shape = GetAssetShape(entity.PhysicsPoseInfo.RemotePoseFile, entity.PhysicsPoseInfo.Scale);
         var body = Simulation.Bodies.Add(BodyDescription.CreateKinematic(pose, shape, 1));
         _bodyToEntityId[body] = entity.EntityId;
@@ -410,6 +410,21 @@ public class PhysicsEngine
         }
     }
 
+    public void UpdateEntity(VehicleEntity entity)
+    {
+        if (!_entityIdToBody.ContainsKey(entity.EntityId))
+        {
+            _logger.Warning("UpdateEntity was called for {entity} but there is no body!", entity.ToString());
+            return;
+        }
+
+        // Handle position and orientation
+        var bodyHandle = _entityIdToBody[entity.EntityId];
+        ref var currentPose = ref Simulation.Bodies[bodyHandle].Pose;
+        currentPose.Orientation = Quaternion.Inverse(entity.Rotation);
+        currentPose.Position = entity.Position;
+    }
+
     public void UpdateEntity(IEntity entity)
     {
         if (!_entityIdToBody.ContainsKey(entity.EntityId))
@@ -421,7 +436,7 @@ public class PhysicsEngine
         // Handle position and orientation
         var bodyHandle = _entityIdToBody[entity.EntityId];
         ref var currentPose = ref Simulation.Bodies[bodyHandle].Pose;
-        currentPose.Orientation = entity.Rotation;
+        currentPose.Orientation = Quaternion.Inverse(entity.Rotation);
         currentPose.Position = entity.Position;
     }
 

@@ -18,7 +18,7 @@ public sealed class MeldingBubbleEntity : BaseEntity
 
     public ObserverView MeldingBubble_ObserverView { get; set; }
 
-    public new PositionStruct Position { get; set; }
+    public new PositionStruct Position { get; set; } // FUBAR
     public RadiusStruct Radius { get; set; }
     public byte BubbleType { get; set; }
     public byte FxFlags { get; set; }

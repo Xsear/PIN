@@ -189,7 +189,7 @@ public class PhysicsEngine
                 {
                     var stat = statics[i];
                     var statPose = stat.Pose;
-                    statPose.Position += shapeDef.Origin; // NOTE: Not sure if hkx shapes in .pose files can reference a rotation?
+                    statPose.Position += shapeDef.Origin * scale; // NOTE: Not sure if hkx shapes in .pose files can reference a rotation?
                     var statShapeId = stat.Shape;
 
                     builder.AddForKinematic(statShapeId, statPose, 1);
@@ -391,6 +391,7 @@ public class PhysicsEngine
         // Handle pose shape change
         var bodyHandle = _entityIdToBody[entity.EntityId];
         var body = Simulation.Bodies[bodyHandle];
+        body.Awake = true;
         var expectedShape = GetCharacterShape(entity); // Maybe it would be better to determine the pose id on the character and update accordingly here
         if (body.Collidable.Shape != expectedShape)
         {
@@ -420,6 +421,8 @@ public class PhysicsEngine
 
         // Handle position and orientation
         var bodyHandle = _entityIdToBody[entity.EntityId];
+        var body = Simulation.Bodies[bodyHandle];
+        body.Awake = true;
         ref var currentPose = ref Simulation.Bodies[bodyHandle].Pose;
         currentPose.Orientation = Quaternion.Inverse(entity.Rotation);
         currentPose.Position = entity.Position;
@@ -435,6 +438,8 @@ public class PhysicsEngine
 
         // Handle position and orientation
         var bodyHandle = _entityIdToBody[entity.EntityId];
+        var body = Simulation.Bodies[bodyHandle];
+        body.Awake = true;
         ref var currentPose = ref Simulation.Bodies[bodyHandle].Pose;
         currentPose.Orientation = Quaternion.Inverse(entity.Rotation);
         currentPose.Position = entity.Position;
@@ -497,6 +502,7 @@ public class PhysicsEngine
                             var poseData = _assetIdToPoseCompoundData[poseId];
                             var poseShapeData = poseData[hitHandler.ChildIndex];
                             _logger.Debug($"ProjectileRayCast Impact on {poseShapeData.Name}");
+                            _shard.Chat.SendToAll($"You hit {poseShapeData.Name} of {hitEntity}", Enums.ChatChannel.Debug, source);
                         }
 
                         var bodyPosition = Simulation.Bodies[hitHandler.HitCollidable.BodyHandle].Pose.Position;

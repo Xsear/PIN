@@ -24,6 +24,7 @@ using GameServer.Entities.Thumper;
 using GameServer.Entities.Turret;
 using GameServer.Entities.Vehicle;
 using GameServer.Extensions;
+using GameServer.Physics;
 using Serilog;
 using Timer = System.Threading.Timer;
 
@@ -358,7 +359,6 @@ public class EntityManager
                     // SpawnVehicle(116, new Vector3(-1.5f, 3f, 0f), Quaternion.Identity, owner, false);
                     SpawnVehicle(201, new Vector3(-1.5f, 7f, 0f), Quaternion.Identity, owner, false);
                 }
-
             }
         }
 
@@ -463,17 +463,11 @@ public class EntityManager
     {
         if (entity is CharacterEntity character)
         {
-            if (character.BodyHandle.Value == 0)
-            {
-                character.InitBody();
-            }
+            character.InitBody();
         }
         else if (entity is VehicleEntity vehicle)
         {
-            if (vehicle.BodyHandle.Value == 0)
-            {
-                vehicle.InitBody();
-            }
+            vehicle.InitBody();
         }
 
         ScopedPlayersByEntity.TryAdd(guid, new());
@@ -1711,6 +1705,8 @@ public class EntityManager
         {
             ScopeOut(client, entity);
         }
+
+        _shard.Physics.RemoveEntity(entity);
     }
 
     private class ScopeInRequest

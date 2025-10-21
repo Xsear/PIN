@@ -18,7 +18,6 @@ public class BaseEntity : IEntity
     public IShard Shard { get; }
     public Vector3 Position { get; set; }
     public Quaternion Rotation { get; set; }
-    public BodyHandle BodyHandle { get; set; }
 
     public InteractionComponent Interaction { get; set; }
     public ScopingComponent Scoping { get; set; }

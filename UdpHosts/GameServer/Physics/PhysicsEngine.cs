@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -21,6 +20,45 @@ using static GameServer.Physics.PoseLoader.PoseData;
 
 namespace GameServer.Physics;
 
+public struct AssetCompoundKey : IEquatable<AssetCompoundKey>
+{
+    public uint AssetId;
+    public float Scale;
+
+    public AssetCompoundKey(uint assetId, float scale)
+    {
+        AssetId = assetId;
+        Scale = scale;
+    }
+
+    public bool Equals(AssetCompoundKey other)
+    {
+        return AssetId == other.AssetId &&
+               BitConverter.SingleToInt32Bits(Scale) == BitConverter.SingleToInt32Bits(other.Scale);
+    }
+
+    public override bool Equals(object obj)
+    {
+        return obj is AssetCompoundKey other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = 17;
+            hash = (hash * 31) + AssetId.GetHashCode();
+            hash = (hash * 31) + BitConverter.SingleToInt32Bits(Scale);
+            return hash;
+        }
+    }
+}
+
+public struct CompoundCacheEntry
+{
+    public TypedIndex ShapeIndex;
+}
+
 public class PhysicsEngine
 {
     public const float TargetTimestepDuration = 50; // (1/20f)
@@ -31,15 +69,14 @@ public class PhysicsEngine
     public Vector2 DebugViewHeading;
     public ulong DebugViewEntity = 0;
 
-    private const float _tempBodySphereSize = 0.9f;
-
     private readonly IShard _shard;
     private readonly ILogger _logger;
     private readonly GameServerSettings _settings;
     private readonly ProjectileSim _projectileSim;
 
-    private TypedIndex _defaultCharacterShape;
-    private Dictionary<BodyHandle, ulong> _bodyToEntityId = new();
+    private TypedIndex _fallbackShape;
+    private Dictionary<ulong, BodyHandle> _entityIdToBody = [];
+    private Dictionary<BodyHandle, ulong> _bodyToEntityId = [];
 
     /// <summary>
     ///     AssetId + Scale to Shape (TypedIndex) cache
@@ -82,36 +119,7 @@ public class PhysicsEngine
             new SolveDescription(8, 1));
 
         // Default shapes
-        _defaultCharacterShape = Simulation.Shapes.Add(new Sphere(_tempBodySphereSize));
-
-        // Simulation.Shapes.Add(new Sphere(0.9f));
-        // new Cylinder(0.4f * 1.2f, 1.6f * 1.2f)
-        // Simulation.Shapes.Add(new Cylinder(0.4f, 1.6f));
-
-        if (false)
-        {
-            var builder = new CompoundBuilder(BufferPool, Simulation.Shapes, 3);
-
-            var pose1 = RigidPose.Identity;
-            var pose2 = RigidPose.Identity;
-            var pose3 = RigidPose.Identity;
-
-            var globe1 = Simulation.Shapes.Add(new Sphere(1.2f));
-            pose1.Position = new Vector3(0, 0, 2 + 1.2f);
-            builder.AddForKinematic(globe1, pose1, -1);
-
-            var globe2 = Simulation.Shapes.Add(new Sphere(1.2f));
-            pose2.Position = new Vector3(0, 0, 4 + 1.2f);
-            builder.AddForKinematic(globe1, pose2, -1);
-
-            builder.BuildKinematicCompound(out var children, out Vector3 center);
-            var compound = new Compound(children);
-            var shape = Simulation.Shapes.Add(compound);
-
-            pose3 = RigidPose.Identity;
-            pose3.Position = new Vector3(-1.5f, 3f, 0f + center.Z);
-            var body = Simulation.Bodies.Add(BodyDescription.CreateKinematic(pose3, shape, -1));
-        }
+        _fallbackShape = Simulation.Shapes.Add(new Sphere(0.9f));
 
         // Load zone
         if (_settings.LoadMapsCollision)
@@ -150,26 +158,6 @@ public class PhysicsEngine
             Simulation.Timestep(TargetTimestepDuration, PhysicsThreadDispatcher);
             TimeAccumulator -= TargetTimestepDuration;
         }
-    }
-
-    public struct ActivePoseShapeData
-    {
-        public TypedIndex ShapeId;
-        public ShapeFlags ShapeFlags;
-        public int Material;
-        public string Name;
-        public float DamageMod = 1.0f;
-        public string HitTagType = "Default";
-
-        public ActivePoseShapeData()
-        {
-        }
-    }
-
-    public struct EntityData
-    {
-        public ulong EntityId;
-        public uint PoseId;
     }
 
     public (CompoundCacheEntry, Dictionary<int, ActivePoseShapeData>) CreateActivePose(PoseData poseDef, float scale = 1f)
@@ -266,7 +254,6 @@ public class PhysicsEngine
         var compound = new Compound(children);
 
         // Origin at bottom
-        //compound.ComputeBounds(RigidPose.Identity.Orientation, Simulation.Shapes, out var min, out var max);
         Vector3 offset = new Vector3(0, 0, center.Z);
         for (int i = 0; i < childIndex; ++i)
         {
@@ -303,7 +290,7 @@ public class PhysicsEngine
         }
 
         _logger.Debug("Returning fallback shape for assetId {assetId}", assetId);
-        return _defaultCharacterShape;
+        return _fallbackShape;
     }
 
     public TypedIndex GetCharacterShape(CharacterEntity character)
@@ -314,7 +301,7 @@ public class PhysicsEngine
         if (info == null)
         {
             _logger.Debug("GetCharacterShape but no PhysicsPoseInfo");
-            return _defaultCharacterShape;
+            return _fallbackShape;
         }
 
         uint collisionId = info.PoseTypeRecord.StandingCollisionid;
@@ -361,37 +348,49 @@ public class PhysicsEngine
 
     public BodyHandle CreateKineticEntity(CharacterEntity entity)
     {
-        var pose = new RigidPose
+        if (_entityIdToBody.ContainsKey(entity.EntityId))
         {
-            Position = entity.Position,
-            Orientation = entity.Rotation
-        };
-        var shape = GetCharacterShape(entity);
+            _logger.Warning("CreateKineticEntity was called for {entity} but there is already a body! Returning the existing body.", entity.ToString());
+            return _entityIdToBody[entity.EntityId];
+        }
 
+        var pose = new RigidPose(entity.Position, entity.Rotation);
+        var shape = GetCharacterShape(entity);
         var body = Simulation.Bodies.Add(BodyDescription.CreateKinematic(pose, shape, 1));
         _bodyToEntityId[body] = entity.EntityId;
+        _entityIdToBody[entity.EntityId] = body;
 
         return body;
     }
 
     public BodyHandle CreateKineticEntity(VehicleEntity entity)
     {
-        var pose = new RigidPose
+        if (_entityIdToBody.ContainsKey(entity.EntityId))
         {
-            Position = entity.Position,
-            Orientation = entity.Rotation
-        };
+            _logger.Warning("CreateKineticEntity was called for {entity} but there is already a body! Returning the existing body.", entity.ToString());
+            return _entityIdToBody[entity.EntityId];
+        }
+
+        var pose = new RigidPose(entity.Position, entity.Rotation);
         var shape = GetAssetShape(entity.PhysicsPoseInfo.RemotePoseFile, entity.PhysicsPoseInfo.Scale);
         var body = Simulation.Bodies.Add(BodyDescription.CreateKinematic(pose, shape, 1));
         _bodyToEntityId[body] = entity.EntityId;
+        _entityIdToBody[entity.EntityId] = body;
 
         return body;
     }
 
     public void UpdateEntity(CharacterEntity entity)
     {
+        if (!_entityIdToBody.ContainsKey(entity.EntityId))
+        {
+            _logger.Warning("UpdateEntity was called for {entity} but there is no body!", entity.ToString());
+            return;
+        }
+
         // Handle pose shape change
-        var body = Simulation.Bodies[entity.BodyHandle];
+        var bodyHandle = _entityIdToBody[entity.EntityId];
+        var body = Simulation.Bodies[bodyHandle];
         var expectedShape = GetCharacterShape(entity); // Maybe it would be better to determine the pose id on the character and update accordingly here
         if (body.Collidable.Shape != expectedShape)
         {
@@ -399,7 +398,7 @@ public class PhysicsEngine
         }
 
         // Handle position and orientation
-        ref var currentPose = ref Simulation.Bodies[entity.BodyHandle].Pose;
+        ref var currentPose = ref Simulation.Bodies[bodyHandle].Pose;
         currentPose.Orientation = Quaternion.Inverse(entity.Rotation);
         currentPose.Position = entity.Position;
 
@@ -411,20 +410,33 @@ public class PhysicsEngine
         }
     }
 
-    public void UpdateEntity(VehicleEntity entity)
+    public void UpdateEntity(IEntity entity)
     {
+        if (!_entityIdToBody.ContainsKey(entity.EntityId))
+        {
+            _logger.Warning("UpdateEntity was called for {entity} but there is no body!", entity.ToString());
+            return;
+        }
+
         // Handle position and orientation
-        ref var currentPose = ref Simulation.Bodies[entity.BodyHandle].Pose;
-        currentPose.Orientation = Quaternion.Inverse(entity.Rotation);
+        var bodyHandle = _entityIdToBody[entity.EntityId];
+        ref var currentPose = ref Simulation.Bodies[bodyHandle].Pose;
+        currentPose.Orientation = entity.Rotation;
         currentPose.Position = entity.Position;
     }
 
-    public void UpdateEntity(IEntity entity)
+    public void RemoveEntity(IEntity entity)
     {
-        // Handle position and orientation
-        ref var currentPose = ref Simulation.Bodies[entity.BodyHandle].Pose;
-        currentPose.Orientation = Quaternion.Inverse(entity.Rotation);
-        currentPose.Position = entity.Position;
+        if (!_entityIdToBody.ContainsKey(entity.EntityId))
+        {
+            _logger.Warning("RemoveEntity was called for {entity} but there is no body!", entity.ToString());
+            return;
+        }
+
+        var bodyHandle = _entityIdToBody[entity.EntityId];
+        _entityIdToBody.Remove(entity.EntityId);
+        _bodyToEntityId.Remove(bodyHandle);
+        Simulation.Bodies.Remove(bodyHandle);
     }
 
     public void ProjectileRayCast(ProjectileSim.ProjectileData projectile)
@@ -442,7 +454,7 @@ public class PhysicsEngine
         var hitHandler = default(RayHitHandler);
         hitHandler.T = maxRange;
         hitHandler.AvoidSourceBody = true;
-        hitHandler.SourceBody = source.BodyHandle;
+        hitHandler.SourceBody = _entityIdToBody[source.EntityId];
 
         Simulation.RayCast(origin, direction, float.MaxValue, BufferPool, ref hitHandler);
         if (hitHandler.T < maxRange)
@@ -506,7 +518,7 @@ public class PhysicsEngine
         var hitHandler = default(RayHitHandler);
         hitHandler.T = maxRange;
         hitHandler.AvoidSourceBody = true;
-        hitHandler.SourceBody = source.BodyHandle;
+        hitHandler.SourceBody = _entityIdToBody[source.EntityId];
         Simulation.RayCast(origin, direction, float.MaxValue, BufferPool, ref hitHandler);
         if (hitHandler.T < maxRange)
         {
@@ -649,6 +661,26 @@ public class PhysicsEngine
         }
     }
 
+    public struct ActivePoseShapeData
+    {
+        public TypedIndex ShapeId;
+        public ShapeFlags ShapeFlags;
+        public int Material;
+        public string Name;
+        public float DamageMod = 1.0f;
+        public string HitTagType = "Default";
+
+        public ActivePoseShapeData()
+        {
+        }
+    }
+
+    public struct EntityData
+    {
+        public ulong EntityId;
+        public uint PoseId;
+    }
+
     private struct RayHitHandler : IRayHitHandler
     {
         public float T;
@@ -701,43 +733,4 @@ public class PhysicsEngine
             ChildIndex = childIndex;
         }
     }
-}
-
-public struct AssetCompoundKey : IEquatable<AssetCompoundKey>
-{
-    public uint AssetId;
-    public float Scale;
-
-    public AssetCompoundKey(uint assetId, float scale)
-    {
-        AssetId = assetId;
-        Scale = scale;
-    }
-
-    public bool Equals(AssetCompoundKey other)
-    {
-        return AssetId == other.AssetId &&
-               BitConverter.SingleToInt32Bits(Scale) == BitConverter.SingleToInt32Bits(other.Scale);
-    }
-
-    public override bool Equals(object obj)
-    {
-        return obj is AssetCompoundKey other && Equals(other);
-    }
-
-    public override int GetHashCode()
-    {
-        unchecked
-        {
-            int hash = 17;
-            hash = (hash * 31) + AssetId.GetHashCode();
-            hash = (hash * 31) + BitConverter.SingleToInt32Bits(Scale);
-            return hash;
-        }
-    }
-}
-
-public struct CompoundCacheEntry
-{
-    public TypedIndex ShapeIndex;
 }

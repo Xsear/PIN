@@ -741,10 +741,7 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget
             Vehicle_BaseController.CurrentPoseProp = CurrentPose;
         }
 
-        if (BodyHandle.Value != 0)
-        {
-            Shard.Physics.UpdateEntity(this);
-        }
+        Shard.Physics.UpdateEntity(this);
     }
 
     private void RefreshOccupants()
@@ -778,7 +775,7 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget
 
     public void InitBody()
     {
-        BodyHandle = Shard.Physics.CreateKineticEntity(this);
+        Shard.Physics.CreateKineticEntity(this);
     }
 }
 

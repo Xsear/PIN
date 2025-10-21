@@ -2297,7 +2297,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
 
     public void InitBody()
     {
-        BodyHandle = Shard.Physics.CreateKineticEntity(this);
+        Shard.Physics.CreateKineticEntity(this);
     }
 
     private void RefreshMovementView()
@@ -2310,10 +2310,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             MovementState = (ushort)MovementState,
             Time = Shard.CurrentTime
         };
-        if (BodyHandle.Value != 0)
-        {
-            Shard.Physics.UpdateEntity(this);
-        }
+        Shard.Physics.UpdateEntity(this);
     }
 
     private void RefreshAllStatusEffects()

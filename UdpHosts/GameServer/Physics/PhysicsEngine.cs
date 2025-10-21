@@ -116,8 +116,8 @@ public class PhysicsEngine
         // Load zone
         if (_settings.LoadMapsCollision)
         {
-            TagfileLoader = new TagfileLoader(Simulation, BufferPool, LoaderThreadDispatcher, _logger);
-            ZoneLoader = new ZoneLoader.ZoneLoader(Simulation, BufferPool, LoaderThreadDispatcher, TagfileLoader, _logger);
+            TagfileLoader = new TagfileLoader(Simulation, BufferPool, PhysicsThreadDispatcher, _logger);
+            ZoneLoader = new ZoneLoader.ZoneLoader(Simulation, BufferPool, PhysicsThreadDispatcher, TagfileLoader, _logger);
             ZoneLoader.LoadCollision(_settings.MapsPath,
                 _shard.ZoneId,
                 () =>
@@ -201,10 +201,10 @@ public class PhysicsEngine
                 {
                     var stat = statics[i];
                     var statPose = stat.Pose;
-                    statPose.Position += pose.Position;
+                    statPose.Position += shapeDef.Origin; // NOTE: Not sure if hkx shapes in .pose files can reference a rotation?
                     var statShapeId = stat.Shape;
 
-                    builder.AddForKinematic(statShapeId, statPose, -1);
+                    builder.AddForKinematic(statShapeId, statPose, 1);
                     result.Add(childIndex++, new ActivePoseShapeData()
                     {
                         DamageMod = 1.0f,
@@ -247,7 +247,7 @@ public class PhysicsEngine
                         break;
                 }
 
-                builder.AddForKinematic(shapeId, pose, -1);
+                builder.AddForKinematic(shapeId, pose, 1);
 
                 // FIXME: The HKX route will add multiple children so the child index no longer aligns with the shape defs
                 result.Add(childIndex++, new ActivePoseShapeData()
@@ -268,7 +268,7 @@ public class PhysicsEngine
         // Origin at bottom
         //compound.ComputeBounds(RigidPose.Identity.Orientation, Simulation.Shapes, out var min, out var max);
         Vector3 offset = new Vector3(0, 0, center.Z);
-        for (int i = 0; i < childIndex + 1; ++i)
+        for (int i = 0; i < childIndex; ++i)
         {
             ref var child = ref compound.Children[i];
             child.LocalPosition += offset;

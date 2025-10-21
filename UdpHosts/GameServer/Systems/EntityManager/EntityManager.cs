@@ -351,10 +351,10 @@ public class EntityManager
                     TempSpawnTestEntities();
                 }
 
-                if (_shard.ZoneId == 12)
+                if (_shard.ZoneId == 12 || _shard.ZoneId == 1003)
                 {
-                    var owner = SpawnCharacter(2312, new Vector3(0f, 3f, 0f));
-                    SpawnCharacter(2385, new Vector3(1.5f, 3f, 0f));
+                    var owner = SpawnCharacter(2312, new Vector3(1.5f, 3f, 0f));
+                    // SpawnCharacter(2385, new Vector3(1.5f, 3f, 0f));
                     // SpawnVehicle(116, new Vector3(-1.5f, 3f, 0f), Quaternion.Identity, owner, false);
                     SpawnVehicle(201, new Vector3(-1.5f, 7f, 0f), Quaternion.Identity, owner, false);
                 }

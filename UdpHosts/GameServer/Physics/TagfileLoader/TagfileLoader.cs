@@ -191,11 +191,13 @@ public class TagfileLoader
             0,
             0);
         var rot = Quaternion.Normalize(Quaternion.CreateFromRotationMatrix(matrix));
+        var parentPose = new RigidPose(pos, rot);
 
         return childShapeStaticArr.Select((StaticDescription childShapeStatic) =>
         {
-            childShapeStatic.Pose.Orientation = rot; // rot * childShapeStatic.Pose.Orientation;
-            childShapeStatic.Pose.Position = pos;
+            // Apply the transform of hkpRigidBody directly to the children without losing their local poses
+            RigidPose.MultiplyWithoutOverlap(childShapeStatic.Pose, parentPose, out var transformedPose);
+            childShapeStatic.Pose = transformedPose;
             return childShapeStatic;
         }).ToArray();
     }
@@ -236,7 +238,7 @@ public class TagfileLoader
                 mesh.Recenter(-childShapeStatic.Pose.Position);
             }
 
-            childShapeStatic.Pose.Orientation = rot; // rot * childShapeStatic.Pose.Orientation;
+            childShapeStatic.Pose.Orientation = rot;
             childShapeStatic.Pose.Position = pos;
             return childShapeStatic;
         }).ToArray();
@@ -269,7 +271,7 @@ public class TagfileLoader
 
         return childShapeStaticArr.Select((StaticDescription childShapeStatic) =>
         {
-            childShapeStatic.Pose.Orientation = rot; // rot * childShapeStatic.Pose.Orientation;
+            childShapeStatic.Pose.Orientation = rot;
             childShapeStatic.Pose.Position = pos;
             return childShapeStatic;
         }).ToArray();
@@ -301,20 +303,8 @@ public class TagfileLoader
         QuaternionEx.GetQuaternionBetweenNormalizedVectors(up, dir, out Quaternion rot); // Rotate from Y-aligned to the Z-aligned based direction
         var capsule = new Capsule(rad, len);
 
-        var pose = RigidPose.Identity;
-        pose.Orientation = rot;
-        pose.Position = mid;
-
+        var pose = new RigidPose(mid, rot);
         var stat = new StaticDescription(pose, Simulation.Shapes.Add(capsule));
-
-        // TEMP
-        if (float.IsNaN(stat.Pose.Orientation.X))
-        {
-            Console.WriteLine($"CAPSULE {obj.Name} {rot}");
-            Console.WriteLine($"CAPSULE {obj.Name} STAT {stat.Pose.Orientation}");
-            throw new Exception();
-        }
-
         return [stat];
     }
 
@@ -325,15 +315,12 @@ public class TagfileLoader
         var mid = Vector3.Multiply(Vector3.Add(top, bot), 0.5f);
         var len = Vector3.Distance(top, bot);
         var dir = Vector3.Normalize(Vector3.Subtract(bot, top));
-        var up = new Vector3(0, 1, 0); // yes... idk why
-        QuaternionEx.GetQuaternionBetweenNormalizedVectors(up, dir, out Quaternion rot);
+        var up = new Vector3(0, 1, 0); // Since the Capsule is Y-aligned in BepuPhysics
+        QuaternionEx.GetQuaternionBetweenNormalizedVectors(up, dir, out Quaternion rot); // Rotate from Y-aligned to the Z-aligned based direction
         var rad = obj.CylRadius;
         var cylinder = new Cylinder(rad, len);
 
-        var pose = RigidPose.Identity;
-        pose.Orientation = rot;
-        pose.Position = mid;
-
+        var pose = new RigidPose(mid, rot);
         var stat = new StaticDescription(pose, Simulation.Shapes.Add(cylinder));
         return [stat];
     }
@@ -366,10 +353,7 @@ public class TagfileLoader
 
             var mesh = LoadMeshContent(meshContent, BufferPool, scale, ThreadDispatcher);
 
-            var pose = RigidPose.Identity;
-            pose.Orientation = rot;
-            pose.Position = pos;
-
+            var pose = new RigidPose(pos, rot);
             result.Add(new StaticDescription(pose, Simulation.Shapes.Add(mesh)));
         }
 
@@ -377,7 +361,7 @@ public class TagfileLoader
         {
             foreach (var childShape in shapepart.ChildShapes)
             {
-                // TODO: Consider rotation and translation of subpart shape
+                // TODO: Consider rotation and translation of subpart shape?
                 var childShapeObj = layer.GetTagfileObject(childShape);
                 try
                 {
@@ -392,6 +376,24 @@ public class TagfileLoader
         }
 
         return result.ToArray();
+    }
+
+    private StaticDescription[] ProcessShape(HkpConvexVerticesShapeObject obj, ref ITagfileExternalStorage layer)
+    {
+        try
+        {
+            Vector3[] vertices = UnrotateRotatedVertices(obj.RotatedVertices, obj.NumVertices);
+            var convexHull = new ConvexHull(vertices, BufferPool, out Vector3 center);
+            var pose = new RigidPose(center);
+            var stat = new StaticDescription(pose, Simulation.Shapes.Add(convexHull));
+            return [stat];
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to process hkpConvexVerticesShape {pointer}. Exception: {exceptionMessage} ({exceptionType}) \n{more}", obj.Name, ex.Message, ex.GetType().Name, ex.StackTrace);
+            var box = new Box(0.5f * 2, 0.5f * 2, 0.5f * 2);
+            return [new StaticDescription(RigidPose.Identity, Simulation.Shapes.Add(box))];
+        }
     }
 
     private Vector3[] UnrotateRotatedVertices(Vector4[][] rotatedVertices, uint numVertices)
@@ -426,25 +428,6 @@ public class TagfileLoader
         }
 
         return vertices;
-    }
-
-    private StaticDescription[] ProcessShape(HkpConvexVerticesShapeObject obj, ref ITagfileExternalStorage layer)
-    {
-        try
-        {
-            Vector3[] vertices = UnrotateRotatedVertices(obj.RotatedVertices, obj.NumVertices);
-            var convexHull = new ConvexHull(vertices, BufferPool, out Vector3 center);
-            var pose = RigidPose.Identity;
-            pose.Position = center;
-            var stat = new StaticDescription(pose, Simulation.Shapes.Add(convexHull));
-            return [stat];
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("Failed to process hkpConvexVerticesShape {pointer}. Exception: {exceptionMessage} ({exceptionType}) \n{more}", obj.Name, ex.Message, ex.GetType().Name, ex.StackTrace);
-            var box = new Box(0.5f * 2, 0.5f * 2, 0.5f * 2);
-            return [new StaticDescription(RigidPose.Identity, Simulation.Shapes.Add(box))];
-        }
     }
 
     [StructLayout(LayoutKind.Sequential)]

@@ -3,6 +3,7 @@ namespace GameServer.Data.SDB;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using AeroMessages.GSS.V66.Character;
 using Records.dbcharacter;
 using Records.dbitems;
@@ -10,6 +11,11 @@ using Records.vcs;
 
 public class SDBUtils
 {
+    public static Vector3 Vector3FromFauFau(FauFau.Util.CommmonDataTypes.Vector3 input)
+    {
+        return new Vector3(input.x, input.y, input.z);
+    }
+
     public static Dictionary<byte, CharCreateLoadoutSlots> GetDefaultLoadoutSlots(uint loadoutId)
     {
         var loadout = SDBInterface.GetCharCreateLoadout(loadoutId);
@@ -221,6 +227,10 @@ public class SDBUtils
             Turrets = new List<TurretComponentDef>(),
             Deployables = new List<DeployableComponentDef>(),
             HullSegment = null,
+            DriverPoseFile = 0,
+            PasengerPoseFile = 0,
+            PassengerPoseOffset = Vector3.Zero,
+            DriverPoseOffset = Vector3.Zero,
         };
 
         foreach (var baseComponent in baseComponents.Values)
@@ -242,6 +252,8 @@ public class SDBUtils
                     var driverComponent = SDBInterface.GetDriverComponentDef(componentId);
                     result.HasDriverSeat = true;
                     result.DriverPosture = driverComponent.Posture;
+                    result.DriverPoseFile = driverComponent.DriverPoseFile;
+                    result.DriverPoseOffset = Vector3FromFauFau(driverComponent.DriverPoseFileOffset);
                     break;
 
                 case ComponentType.Passenger:
@@ -250,6 +262,8 @@ public class SDBUtils
                     result.PassengerPosture = passengerComponent.Posture;
                     result.HasActivePassenger = passengerComponent.ActivePassenger == 1;
                     result.SkipOnePassenger = passengerComponent.LeadingZero == 1;
+                    result.PasengerPoseFile = passengerComponent.PassengerPoseFile;
+                    result.PassengerPoseOffset = Vector3FromFauFau(passengerComponent.PassengerPoseFileOffset);
                     break;
 
                 case ComponentType.Ability:
@@ -622,6 +636,10 @@ public class VehicleInfoResult
     public List<TurretComponentDef> Turrets;
     public List<DeployableComponentDef> Deployables;
     public HullSegmentDef HullSegment;
+    public uint DriverPoseFile;
+    public uint PasengerPoseFile;
+    public Vector3 PassengerPoseOffset;
+    public Vector3 DriverPoseOffset;
 }
 
 public class ChassisWarpaintResult

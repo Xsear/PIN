@@ -9,7 +9,7 @@ using GameServer.Entities.Turret;
 
 namespace GameServer.Entities.Deployable;
 
-public sealed class DeployableEntity : BaseAptitudeEntity, IAptitudeTarget
+public sealed class DeployableEntity : BaseAptitudeEntity, IAptitudeTarget, ICommonPhysicsEntity
 {
     // TODO: Add Deployable Hardpoint support
     public DeployableEntity(IShard shard, ulong eid, uint type, uint abilitySrcId, CharacterEntity owner = null)
@@ -30,12 +30,12 @@ public sealed class DeployableEntity : BaseAptitudeEntity, IAptitudeTarget
     public Vector3 AimDirection { get; set; }
     public HostilityInfoData HostilityInfo { get; set; }
     public TurretEntity Turret { get; set; }
+    public PhysicsInfo PhysicsPoseInfo { get; set; }
 
     public uint ConstructedTime { get; set; }
     public uint Type { get; set; }
     public uint AbilitySrcId { get; set; }
     public uint GibVisualsID { get; set; }
-    public float Scale { get; set; }
     public int MaxHealth { get; set; } = 0;
     public uint PoweredOnAbility { get; set; } = 0;
     public uint PoweredOffAbility { get; set; } = 0;

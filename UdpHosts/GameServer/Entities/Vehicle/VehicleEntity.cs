@@ -44,7 +44,7 @@ public enum AttachmentRole : byte
     Turret = 4
 }
 
-public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget
+public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget, ICommonPhysicsEntity
 {
     public VehicleEntity(IShard shard, ulong eid, CharacterEntity owner = null)
         : base(shard, eid, owner)
@@ -211,6 +211,7 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget
     public uint DeathAbility { get; set; } = 0;
 
     public PhysicsInfo PhysicsPoseInfo { get; set; }
+    public new bool HasPhysicsBody { get; set; } = true;
 
     public void Load(VehicleInfoResult vehicleInfo)
     {
@@ -228,6 +229,8 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget
         {
             Occupants[0].Role = AttachmentRole.Driver;
             Occupants[0].Posture = vehicleInfo.DriverPosture;
+            Occupants[0].PoseFile = vehicleInfo.DriverPoseFile;
+            Occupants[0].PoseOffset = vehicleInfo.DriverPoseOffset;
             emptySeatIdx++;
         }
 
@@ -236,8 +239,10 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget
         {
             Occupants[emptySeatIdx].Role = AttachmentRole.Turret;
             Occupants[emptySeatIdx].Posture = turret.Posture;
+            Occupants[emptySeatIdx].PoseFile = turret.GunnerPoseFile;
+            Occupants[emptySeatIdx].PoseOffset = SDBUtils.Vector3FromFauFau(turret.GunnerPoseFileOffset);
 
-            Turrets.Add(Shard.EntityMan.SpawnTurret(turret.TurretType, this, turretIdx, turret.Posture));
+            Turrets.Add(Shard.EntityMan.SpawnTurret(turret.TurretType, this, SDBUtils.Vector3FromFauFau(turret.GunnerPoseFileOffset), turretIdx, turret.Posture, turret.GunnerPoseFile));
             Occupants[emptySeatIdx].TurretIndex = turretIdx;
 
             emptySeatIdx++;
@@ -256,6 +261,8 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget
         {
             Occupants[emptySeatIdx].Role = vehicleInfo.HasActivePassenger ? AttachmentRole.ActivePassenger : AttachmentRole.PassivePassenger;
             Occupants[emptySeatIdx].Posture = vehicleInfo.PassengerPosture;
+            Occupants[emptySeatIdx].PoseFile = vehicleInfo.PasengerPoseFile;
+            Occupants[emptySeatIdx].PoseOffset = vehicleInfo.PassengerPoseOffset;
             emptySeatIdx++;
         }
 
@@ -274,7 +281,7 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget
         // Hull
         PhysicsPoseInfo = new PhysicsInfo
         {
-            RemotePoseFile = vehicleInfo.HullSegment.RemotePoseFile,
+            HitboxCollisionId = vehicleInfo.HullSegment.RemotePoseFile,
             Scale = 1f,
         };
 
@@ -513,7 +520,9 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget
             Unk2 = seatConfig.Posture,
             Unk3 = 1, // mostly 1 in replays
         },
-                                this);
+        this,
+        seatConfig.PoseFile,
+        seatConfig.PoseOffset);
 
         if (character.IsPlayerControlled && seatConfig.Role == AttachmentRole.Driver)
         {
@@ -575,7 +584,9 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget
             Unk2 = seatConfig.Posture,
             Unk3 = 1, // mostly 1 in replays
         },
-                                this);
+        this,
+        seatConfig.PoseFile,
+        seatConfig.PoseOffset);
 
         if (character.IsPlayerControlled && seatConfig.Role == AttachmentRole.Driver)
         {
@@ -771,11 +782,6 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget
             Vehicle_BaseController.SnapMountProp = 0;
         }
     }
-
-    public void InitBody()
-    {
-        Shard.Physics.CreateKineticEntity(this);
-    }
 }
 
 public class SeatConfig
@@ -784,10 +790,6 @@ public class SeatConfig
     public AttachmentRole Role;
     public byte Posture;
     public byte TurretIndex;
-}
-
-public class PhysicsInfo
-{
-    public uint RemotePoseFile;
-    public float Scale = 1f;
+    public uint PoseFile;
+    public Vector3 PoseOffset;
 }

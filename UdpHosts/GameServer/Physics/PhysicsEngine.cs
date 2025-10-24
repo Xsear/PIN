@@ -24,13 +24,16 @@ public struct AssetCompoundKey : IEquatable<AssetCompoundKey>
 {
     public uint AssetId;
     public float Scale;
+    public Vector3 Offset;
 
-    public AssetCompoundKey(uint assetId, float scale)
+    public AssetCompoundKey(uint assetId, Vector3 offset, float scale)
     {
         AssetId = assetId;
         Scale = scale;
+        Offset = offset;
     }
 
+    // TOOD: Fixme to account offset
     public bool Equals(AssetCompoundKey other)
     {
         return AssetId == other.AssetId &&
@@ -160,7 +163,7 @@ public class PhysicsEngine
         }
     }
 
-    public (CompoundCacheEntry, Dictionary<int, ActivePoseShapeData>) CreateActivePose(PoseData poseDef, float scale = 1f)
+    public (CompoundCacheEntry, Dictionary<int, ActivePoseShapeData>) CreateActivePose(PoseData poseDef, Vector3 offset, float scale = 1f)
     {
         var result = new Dictionary<int, ActivePoseShapeData>();
         var builder = new CompoundBuilder(BufferPool, Simulation.Shapes, poseDef.Shapes.Capacity);
@@ -254,11 +257,11 @@ public class PhysicsEngine
         var compound = new Compound(children);
 
         // Origin at bottom
-        Vector3 offset = new Vector3(0, 0, center.Z);
+        Vector3 origin = new Vector3(0, 0, center.Z);
         for (int i = 0; i < childIndex; ++i)
         {
             ref var child = ref compound.Children[i];
-            child.LocalPosition += offset;
+            child.LocalPosition += origin + offset;
         }
 
         var entry = new CompoundCacheEntry
@@ -269,9 +272,9 @@ public class PhysicsEngine
         return (entry, result);
     }
 
-    public TypedIndex GetAssetShape(uint assetId, float scale = 1f)
+    public TypedIndex GetAssetShape(uint assetId, Vector3 offset, float scale = 1f)
     {
-        var key = new AssetCompoundKey(assetId, scale);
+        var key = new AssetCompoundKey(assetId, offset, scale);
 
         if (_compoundCache.TryGetValue(key, out var cacheEntry))
         {
@@ -282,7 +285,7 @@ public class PhysicsEngine
         if (ok)
         {
             _logger.Debug("PoseLoader OK");
-            var (entry, result) = CreateActivePose(poseDef, scale);
+            var (entry, result) = CreateActivePose(poseDef, offset, scale);
             _compoundCache[key] = entry;
             _assetIdToPoseCompoundData.TryAdd(assetId, result);
             _poseCompoundToAssetId.Add(entry.ShapeIndex, assetId);
@@ -305,10 +308,16 @@ public class PhysicsEngine
         }
 
         uint collisionId = info.PoseTypeRecord.StandingCollisionid;
+        Vector3 offset = Vector3.Zero;
 
-        if (info.PoseTypeRecord.PoseId == 0)
+        if (info.AttachmentPoseId != 0)
         {
-            // Pose type 0 provides on collision ids so let's look at the visual record instead
+            collisionId = info.AttachmentPoseId;
+            offset = info.AttachmentPoseOffset;
+        }
+        else if (info.PoseTypeRecord.PoseId == 0)
+        {
+            // PoseTypeRecord 0 provides no collision ids so let's look at the visual record instead
             if (info.HitboxCollisionId != 0)
             {
                 collisionId = info.HitboxCollisionId;
@@ -343,7 +352,7 @@ public class PhysicsEngine
             collisionId = info.PoseTypeRecord.RunningCollisionid;
         }
 
-        return GetAssetShape(collisionId, character.PhysicsPoseInfo.Scale);
+        return GetAssetShape(collisionId, offset, character.PhysicsPoseInfo.Scale);
     }
 
     public BodyHandle CreateKineticEntity(CharacterEntity entity)
@@ -363,7 +372,7 @@ public class PhysicsEngine
         return body;
     }
 
-    public BodyHandle CreateKineticEntity(VehicleEntity entity)
+    public BodyHandle CreateKineticEntity(ICommonPhysicsEntity entity)
     {
         if (_entityIdToBody.ContainsKey(entity.EntityId))
         {
@@ -372,7 +381,7 @@ public class PhysicsEngine
         }
 
         var pose = new RigidPose(entity.Position, Quaternion.Inverse(entity.Rotation));
-        var shape = GetAssetShape(entity.PhysicsPoseInfo.RemotePoseFile, entity.PhysicsPoseInfo.Scale);
+        var shape = GetAssetShape(entity.PhysicsPoseInfo.HitboxCollisionId, Vector3.Zero, entity.PhysicsPoseInfo.Scale);
         var body = Simulation.Bodies.Add(BodyDescription.CreateKinematic(pose, shape, 1));
         _bodyToEntityId[body] = entity.EntityId;
         _entityIdToBody[entity.EntityId] = body;

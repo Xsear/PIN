@@ -39,7 +39,10 @@ public class DebugAttachedToServerCommand : ServerCommand
             Unk2 = value1,
             Unk3 = value2,
         },
-                                character.AttachedToEntity);
+        character.AttachedToEntity,
+        character.PhysicsPoseInfo.AttachmentPoseId,
+        character.PhysicsPoseInfo.AttachmentPoseOffset);
+
         SourceFeedback($"Setting Unk2 = {value1}, Unk3 = {value2} (Role {prevData.Role})", context);
     }
 }

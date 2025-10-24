@@ -29,7 +29,7 @@ namespace GameServer.Entities.Character;
 /// <summary>
 /// Base Character
 /// </summary>
-public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarget
+public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarget, IPhysicsEntity
 {
     public const byte MaxMapMarkerCount = 64;
     private MapMarkerState[] MapMarkers = new MapMarkerState[MaxMapMarkerCount];
@@ -87,6 +87,11 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     public bool IsFiringWeapon
     {
         get => Character_CombatView != null && (Character_CombatView.WeaponBurstFiredProp > Character_CombatView.WeaponBurstEndedProp);
+    }
+
+    public bool IsAttached
+    {
+        get => AttachedToEntity != null;
     }
 
     public Dictionary<PermissionFlagsData.CharacterPermissionFlags, bool> CurrentPermissions { get; set; } =
@@ -359,7 +364,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     public int CurrentHealth { get; private set; } = 0;
     public int CurrentShields { get; private set; } = 0;
 
-    public PhysicsInfo PhysicsPoseInfo { get; set; }
+    public CharacterPhysicsInfo PhysicsPoseInfo { get; set; }
+    public new bool HasPhysicsBody { get; set; } = true;
 
     internal MovementStateContainer MovementStateContainer { get; set; } = new();
 
@@ -780,7 +786,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
                 Log.Warning("Wtf battleframe {battleframe} has random scale: min: {min}, max: {max}", battleframeRecord.Id, battleframeRecord.MinRandScale, battleframeRecord.MaxRandScale);
             }
 
-            PhysicsPoseInfo = new PhysicsInfo
+            PhysicsPoseInfo = new CharacterPhysicsInfo
             {
                 RequiresRagdoll = charInfo.RequiresRagdoll == 1 ? true : false,
                 PoseTypeRecord = poseTypeRecord,
@@ -1234,10 +1240,12 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             .SetValue(Character_CombatView, null, null);
     }
 
-    public void SetAttachedTo(AttachedToData newValue, IEntity entity)
+    public void SetAttachedTo(AttachedToData newValue, IEntity entity, uint pose, Vector3 poseOffset)
     {
         AttachedToEntity = entity;
         AttachedTo = newValue;
+        PhysicsPoseInfo.AttachmentPoseId = pose;
+        PhysicsPoseInfo.AttachmentPoseOffset = poseOffset;
         Character_ObserverView.AttachedToProp = AttachedTo;
         if (Character_BaseController != null)
         {
@@ -1249,6 +1257,8 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     {
         AttachedToEntity = null;
         AttachedTo = null;
+        PhysicsPoseInfo.AttachmentPoseId = 0;
+        PhysicsPoseInfo.AttachmentPoseOffset = Vector3.Zero;
         Character_ObserverView.AttachedToProp = AttachedTo;
         Character_ObserverView.SnapMountProp = 0;
         if (Character_BaseController != null)
@@ -1523,6 +1533,11 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         {
             Character_BaseController.CurrentShieldsProp = CurrentShields;
         }
+    }
+
+    public void InitBody()
+    {
+        Shard.Physics.CreateKineticEntity(this);
     }
 
     private void InitFields()
@@ -2293,11 +2308,6 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         };
     }
 
-    public void InitBody()
-    {
-        Shard.Physics.CreateKineticEntity(this);
-    }
-
     private void RefreshMovementView()
     {
         Character_MovementView.MovementProp = new MovementData
@@ -2366,14 +2376,5 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         public uint WeaponId;
         public float Spread;
         public float RateOfFire;
-    }
-
-    public class PhysicsInfo
-    {
-        public bool RequiresRagdoll;
-        public PoseType PoseTypeRecord;
-        public uint RagdollCollisionId;
-        public uint HitboxCollisionId;
-        public float Scale = 1f;
     }
 }

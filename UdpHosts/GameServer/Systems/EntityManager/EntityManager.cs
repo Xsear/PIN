@@ -134,7 +134,6 @@ public class EntityManager
         deployableEntity.SetPosition(position);
         deployableEntity.SetOrientation(orientation);
         deployableEntity.SetAimDirection(aimDirection);
-        deployableEntity.Scale = deployableInfo.Scale;
 
         if (deployableInfo.InteractionType != 0)
         {
@@ -153,6 +152,14 @@ public class EntityManager
         {
             // TODO: What does ScopeRange 0 mean? Anyway, it will get a default from the component if so.
             deployableEntity.Scoping = new ScopingComponent() { Range = deployableInfo.ScopeRange };
+        }
+
+        if (deployableInfo.CollisionId != 0)
+        {
+            deployableEntity.HasPhysicsBody = true;
+            deployableEntity.PhysicsPoseInfo = new();
+            deployableEntity.PhysicsPoseInfo.HitboxCollisionId = deployableInfo.CollisionId;
+            deployableEntity.PhysicsPoseInfo.Scale = deployableInfo.Scale;
         }
 
         Add(deployableEntity.EntityId, deployableEntity);
@@ -210,14 +217,19 @@ public class EntityManager
         return deployableEntity;
     }
 
-    public TurretEntity SpawnTurret(uint typeId, BaseEntity parent, byte parentChildIndex = 0, byte posture = 0)
+    public TurretEntity SpawnTurret(uint typeId, BaseEntity parent, byte parentChildIndex = 0, byte posture = 0, uint gunnerPoseId = 0)
+    {
+        return SpawnTurret(typeId, parent, Vector3.Zero, parentChildIndex, posture, gunnerPoseId);
+    }
+
+    public TurretEntity SpawnTurret(uint typeId, BaseEntity parent, Vector3 gunnerPoseOffset, byte parentChildIndex = 0, byte posture = 0, uint gunnerPoseId = 0)
     {
         if (posture == 0)
         {
             posture = SDBInterface.GetTurret(typeId).Posture;
         }
 
-        var turretEntity = new TurretEntity(_shard, _shard.GetNextGuid(), typeId, parent, parentChildIndex, posture);
+        var turretEntity = new TurretEntity(_shard, _shard.GetNextGuid(), typeId, parent, parentChildIndex, posture, gunnerPoseId, gunnerPoseOffset);
 
         Add(turretEntity.EntityId, turretEntity);
 
@@ -266,7 +278,9 @@ public class EntityManager
     {
         var beacon = SDBInterface.GetResourceNodeBeacon(commandDef.ResourceNodeBeaconId);
         var thumperEntity = new ThumperEntity(_shard, _shard.GetNextGuid(), nodeType, position, owner, commandDef);
-        thumperEntity.Scale = beacon.Scale;
+        thumperEntity.PhysicsPoseInfo.HitboxCollisionId = beacon.PosefileId;
+        thumperEntity.PhysicsPoseInfo.Scale = beacon.Scale;
+
         Add(thumperEntity.EntityId, thumperEntity);
         return thumperEntity;
     }
@@ -461,25 +475,9 @@ public class EntityManager
 
     public void Add(ulong guid, IEntity entity)
     {
-        if (entity is CharacterEntity character)
-        {
-            character.InitBody();
-        }
-        else if (entity is VehicleEntity vehicle)
-        {
-            vehicle.InitBody();
-        }
-
+        AddToPhysics(entity);
         ScopedPlayersByEntity.TryAdd(guid, new());
         _shard.Entities.Add(guid, entity);
-        OnAddedEntity(entity);
-    }
-
-    public void Add(IEntity entity)
-    {
-        var guid = new Core.Data.EntityGuid(ServerId, _shard.CurrentTime, Counter++, (byte)Enums.GSS.Controllers.Character);
-        ScopedPlayersByEntity.TryAdd(guid.Full, new());
-        _shard.Entities.Add(guid.Full, entity);
         OnAddedEntity(entity);
     }
 
@@ -1706,7 +1704,30 @@ public class EntityManager
             ScopeOut(client, entity);
         }
 
-        _shard.Physics.RemoveEntity(entity);
+        RemoveFromPhysics(entity);
+    }
+
+    private void AddToPhysics(IEntity entity)
+    {
+        if (entity is IPhysicsEntity)
+        {
+            if (entity is CharacterEntity character)
+            {
+                _shard.Physics.CreateKineticEntity(character);
+            }
+            else if (entity is ICommonPhysicsEntity common)
+            {
+                _shard.Physics.CreateKineticEntity(common);
+            }
+        }
+    }
+
+    private void RemoveFromPhysics(IEntity entity)
+    {
+        if (entity is IPhysicsEntity)
+        {
+            _shard.Physics.RemoveEntity(entity);
+        }
     }
 
     private class ScopeInRequest

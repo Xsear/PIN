@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using AeroMessages.Common;
-using BepuPhysics;
 
 namespace GameServer.Entities;
 
@@ -18,6 +17,7 @@ public class BaseEntity : IEntity
     public IShard Shard { get; }
     public Vector3 Position { get; set; }
     public Quaternion Rotation { get; set; }
+    public bool HasPhysicsBody { get; set; }
 
     public InteractionComponent Interaction { get; set; }
     public ScopingComponent Scoping { get; set; }

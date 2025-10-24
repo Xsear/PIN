@@ -10,7 +10,7 @@ using GameServer.Enums;
 
 namespace GameServer.Entities.Thumper;
 
-public sealed class ThumperEntity : BaseAptitudeEntity, IAptitudeTarget
+public sealed class ThumperEntity : BaseAptitudeEntity, IAptitudeTarget, ICommonPhysicsEntity
 {
     public ThumperEntity(
         IShard shard,
@@ -31,10 +31,10 @@ public sealed class ThumperEntity : BaseAptitudeEntity, IAptitudeTarget
         CalldownTimeMs = commandDef.CalldownTimeMs;
         MaxHealth = (uint)commandDef.Health;
         Interaction = new InteractionComponent()
-          {
-              Type = InteractionType.GenericHold,
-              CompletedAbilityId = CompletedAbility,
-          };
+        {
+            Type = InteractionType.GenericHold,
+            CompletedAbilityId = CompletedAbility,
+        };
         InitFields();
         InitViews();
     }
@@ -55,7 +55,6 @@ public sealed class ThumperEntity : BaseAptitudeEntity, IAptitudeTarget
         Layer = 0,
         Unk2 = 1
     };
-    public float Scale { get; set; }
 
     public uint LandedAbility { get; set; } = 0;
     public uint CompletedAbility { get; set; } = 0;
@@ -127,13 +126,16 @@ public sealed class ThumperEntity : BaseAptitudeEntity, IAptitudeTarget
     public StatusEffectData? StatusEffects_30 { get; set; }
     public StatusEffectData? StatusEffects_31 { get; set; }
 
+    public PhysicsInfo PhysicsPoseInfo { get; set; }
+    public new bool HasPhysicsBody { get; set; } = true;
+
     public override void SetStatusEffect(byte index, ushort time, StatusEffectData data)
     {
         Console.WriteLine($"Thumper.SetStatusEffect Index {index}, Time {time}, Id {data.Id}");
 
         // Member
-        this.GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
-        this.GetType().GetProperty($"StatusEffects_{index}").SetValue(this, data, null);
+        GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
+        GetType().GetProperty($"StatusEffects_{index}").SetValue(this, data, null);
 
         // ObserverView
         ResourceNode_ObserverView.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop").SetValue(ResourceNode_ObserverView, time, null);
@@ -145,8 +147,8 @@ public sealed class ThumperEntity : BaseAptitudeEntity, IAptitudeTarget
         Console.WriteLine($"Thumper.ClearStatusEffect Index {index}, Time {time}, Id {debugEffectId}");
 
         // Member
-        this.GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
-        this.GetType().GetProperty($"StatusEffects_{index}").SetValue(this, null, null);
+        GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
+        GetType().GetProperty($"StatusEffects_{index}").SetValue(this, null, null);
 
         // ObserverView
         ResourceNode_ObserverView.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop").SetValue(ResourceNode_ObserverView, time, null);
@@ -162,11 +164,11 @@ public sealed class ThumperEntity : BaseAptitudeEntity, IAptitudeTarget
     public void TransitionToState(ThumperState newState)
     {
         StateInfo = new StateInfoStruct()
-                    {
-                        State = (byte)newState,
-                        Time = Shard.CurrentTime,
-                        CountdownTime = Shard.CurrentTime + newState.CountdownTime(),
-                    };
+        {
+            State = (byte)newState,
+            Time = Shard.CurrentTime,
+            CountdownTime = Shard.CurrentTime + newState.CountdownTime(),
+        };
         ResourceNode_ObserverView.StateInfoProp = StateInfo;
     }
 

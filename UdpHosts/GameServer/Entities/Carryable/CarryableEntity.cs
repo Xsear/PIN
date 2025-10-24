@@ -108,8 +108,8 @@ public sealed class CarryableEntity : BaseAptitudeEntity, IAptitudeTarget
         Console.WriteLine($"Carryable.SetStatusEffect Index {index}, Time {time}, Id {data.Id}");
 
         // Member
-        this.GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
-        this.GetType().GetProperty($"StatusEffects_{index}").SetValue(this, data, null);
+        GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
+        GetType().GetProperty($"StatusEffects_{index}").SetValue(this, data, null);
 
         // ObserverView
         CarryableObject_ObserverView.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop").SetValue(CarryableObject_ObserverView, time, null);
@@ -121,8 +121,8 @@ public sealed class CarryableEntity : BaseAptitudeEntity, IAptitudeTarget
         Console.WriteLine($"Carryable.ClearStatusEffect Index {index}, Time {time}, Id {debugEffectId}");
 
         // Member
-        this.GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
-        this.GetType().GetProperty($"StatusEffects_{index}").SetValue(this, null, null);
+        GetType().GetProperty($"StatusEffectsChangeTime_{index}").SetValue(this, time, null);
+        GetType().GetProperty($"StatusEffects_{index}").SetValue(this, null, null);
 
         // ObserverView
         CarryableObject_ObserverView.GetType().GetProperty($"StatusEffectsChangeTime_{index}Prop").SetValue(CarryableObject_ObserverView, time, null);

@@ -22,9 +22,9 @@ public class RegisterLoadScaleCommand : Command, ICommand
     {
         var scale = context.Self switch
         {
-            DeployableEntity d => d.Scale,
-            ThumperEntity t    => t.Scale,
-            _                  => 0,
+            DeployableEntity d => d.PhysicsPoseInfo.Scale,
+            ThumperEntity t => t.PhysicsPoseInfo.Scale,
+            _ => 0,
         };
 
         if (scale == 0)

@@ -331,6 +331,10 @@ public class PhysicsEngine
                 _logger.Warning("No suitable collisionId found during GetCharacterShape");
             }
         }
+        else if (movestate == Movestate.Glider || movestate == Movestate.GliderThrusters || movestate == Movestate.GliderStalling)
+        {
+            collisionId = info.PoseTypeRecord.ProneCollisionid;
+        }
         else if (movestate == Movestate.Falling)
         {
             collisionId = info.PoseTypeRecord.FallingCollisionid;

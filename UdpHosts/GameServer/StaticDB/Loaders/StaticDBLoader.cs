@@ -8,6 +8,7 @@ using Records.apt;
 using Records.aptfs;
 using Records.dbcharacter;
 using Records.dbitems;
+using Records.dbphysicsmaterials;
 using Records.dbvisualrecords;
 using Records.vcs;
 using Shared.Common;
@@ -1342,6 +1343,55 @@ public class StaticDBLoader : ISDBLoader
     {
         return LoadStaticDB<ResourceNodeBeacon>("dbitems::ResourceNodeBeacon")
             .ToDictionary(row => row.Id);
+    }
+
+    public Dictionary<uint, PhysicsMaterial> LoadPhysicsMaterial()
+    {
+        return LoadStaticDB<PhysicsMaterial>("dbphysicsmaterials::PhysicsMaterial")
+            .ToDictionary(row => row.Id);
+    }
+
+    public Dictionary<byte, DamageType> LoadDamageType()
+    {
+        return LoadStaticDB<DamageType>("dbcharacter::DamageType")
+            .ToDictionary(row => row.Id);
+    }
+
+    public Dictionary<byte, DamageResponse> LoadDamageResponse()
+    {
+        return LoadStaticDB<DamageResponse>("dbcharacter::DamageResponse")
+            .ToDictionary(row => row.Id);
+    }
+
+    public Dictionary<uint, DamageResponseDamageType> LoadDamageResponseDamageType()
+    {
+        return LoadStaticDB<DamageResponseDamageType>("dbcharacter::DamageResponseDamageType")
+            .ToDictionary(row => row.Id);
+    }
+
+    public Dictionary<uint, TinyObject> LoadTinyObject()
+    {
+        return LoadStaticDB<TinyObject>("dbcharacter::TinyObject")
+            .ToDictionary(row => row.Id);
+    }
+
+    public Dictionary<uint, Faction> LoadFaction()
+    {
+        return LoadStaticDB<Faction>("dbcharacter::Faction")
+            .ToDictionary(row => row.Id);
+    }
+
+    public List<FactionRelations> LoadFactionRelations()
+    {
+        return LoadStaticDB<FactionRelations>("dbcharacter::FactionRelations")
+            .ToList();
+    }
+
+    public Dictionary<uint, List<FactionReputations>> LoadFactionReputations()
+    {
+        return LoadStaticDB<FactionReputations>("dbcharacter::FactionReputations")
+        .GroupBy(row => row.FactionId)
+        .ToDictionary(group => group.Key, group => group.ToList());
     }
 
     private static T[] LoadStaticDB<T>(string tableName)

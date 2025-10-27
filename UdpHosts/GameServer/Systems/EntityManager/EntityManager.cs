@@ -126,7 +126,7 @@ public class EntityManager
         return vehicleEntity;
     }
 
-    public DeployableEntity SpawnDeployable(uint typeId, Vector3 position, Quaternion orientation, CharacterEntity owner = null)
+    public DeployableEntity SpawnDeployable(uint typeId, Vector3 position, Quaternion orientation, CharacterEntity owner = null, bool useOwnerFaction = false, byte overrideFactionId = 0)
     {
         var deployableInfo = SDBInterface.GetDeployable(typeId);
         var deployableEntity = new DeployableEntity(_shard, _shard.GetNextGuid(), typeId, 0, owner);
@@ -134,6 +134,37 @@ public class EntityManager
         deployableEntity.SetPosition(position);
         deployableEntity.SetOrientation(orientation);
         deployableEntity.SetAimDirection(aimDirection);
+
+        // Determine faction
+        byte factionId = 1;
+        if (useOwnerFaction)
+        {
+            if (owner == null)
+            {
+                _logger.Warning("Cant use owner faction when owner is not provided!");
+            }
+            else
+            {
+                factionId = owner.HostilityInfo.FactionId;
+            }
+        }
+        else if (overrideFactionId != 0)
+        {
+            factionId = overrideFactionId;
+        }
+        else if (deployableInfo.DefaultFaction != 0)
+        {
+            factionId = deployableInfo.DefaultFaction;
+        }
+        else
+        {
+            _logger.Warning("Default faction of deployable is 0, what do?");
+        }
+
+        // Set faction
+        var hostilityInfo = deployableEntity.HostilityInfo;
+        hostilityInfo.FactionId = deployableInfo.DefaultFaction;
+        deployableEntity.SetHostilityInfo(hostilityInfo);
 
         if (deployableInfo.InteractionType != 0)
         {
@@ -368,10 +399,18 @@ public class EntityManager
 
                 if (_shard.ZoneId == 12 || _shard.ZoneId == 1003)
                 {
-                    var owner = SpawnCharacter(2312, new Vector3(1.5f, 3f, 0f));
+                    // var owner = SpawnCharacter(2312, new Vector3(1.5f, 3f, 0f));
                     // SpawnCharacter(2385, new Vector3(1.5f, 3f, 0f));
                     // SpawnVehicle(116, new Vector3(-1.5f, 3f, 0f), Quaternion.Identity, owner, false);
-                    SpawnVehicle(201, new Vector3(-1.5f, 7f, 0f), Quaternion.Identity, owner, false);
+                    // SpawnVehicle(201, new Vector3(-1.5f, 7f, 0f), Quaternion.Identity, owner, false);
+
+                    // Faction test
+                    var accord = SpawnCharacter(290, new Vector3(1.5f, 15f, 0f)); // Accord Assault (1)
+                    var chosen = SpawnCharacter(1196, new Vector3(3.5f, 15f, 0f)); // Chosen Fiend (2)
+                    var melding = SpawnCharacter(528, new Vector3(5.5f, 15f, 0f)); // Melded Aranha (6)
+                    var gaea = SpawnCharacter(2342, new Vector3(7.5f, 15f, 0f)); // Aranha (7)
+                    var tanken = SpawnCharacter(2407, new Vector3(9.5f, 15f, 0f)); // Tanken Saboteur (17)
+                    var blackh = SpawnCharacter(1304, new Vector3(11.5f, 15f, 0f)); // Black Hills Bandit (22)
                 }
             }
         }

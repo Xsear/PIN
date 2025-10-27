@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using AeroMessages.Common;
+using GameServer.Data.SDB;
 
 namespace GameServer.Entities;
 
@@ -22,6 +23,7 @@ public class BaseEntity : IEntity
     public InteractionComponent Interaction { get; set; }
     public ScopingComponent Scoping { get; set; }
     public EncounterComponent Encounter { get; set; }
+    public HostilityComponent Hostility { get; set; }
 
     public virtual bool IsInteractable()
     {
@@ -51,5 +53,34 @@ public class BaseEntity : IEntity
     public float GetScopeRange()
     {
         return (Scoping != null) ? Scoping.Range : 100f;
+    }
+
+    public bool IsHostile(uint otherFactionId)
+    {
+        return true;
+    }
+
+    public bool IsFriendly(uint otherFactionId)
+    {
+        return false;
+    }
+
+    public bool IsNeutral(uint otherFactionId)
+    {
+        return false;
+    }
+
+    public void ComputePersonalFactionStance(uint factionId)
+    {
+        var factions = SDBInterface.GetFactions();
+        var totalBytes = (((uint)factions.Count >> 6) + 1) << 3; // 8
+        var byteIndex = 0;
+        var bitIndex = 0;
+        var friendly = new byte[totalBytes];
+        var hostile = new byte[totalBytes];
+        foreach (var faction in factions)
+        {
+
+        }
     }
 }

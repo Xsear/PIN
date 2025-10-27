@@ -285,6 +285,11 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget, ICommon
             Scale = 1f,
         };
 
+        // Faction
+        var hostilityInfo = HostilityInfo;
+        hostilityInfo.FactionId = (byte)vehicleInfo.FactionId;
+        SetHostilityInfo(hostilityInfo);
+
         // TODO: Handle SIN, utility abilities, Deployables
 
         // Hack to just refresh everything by recreating views.
@@ -603,6 +608,16 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget, ICommon
 
         Vehicle_CombatController?.GetType().GetProperty($"SlottedAbility_{index}Prop")
                                 ?.SetValue(Vehicle_CombatController, abilityId, null);
+    }
+
+    public void SetHostilityInfo(HostilityInfoData newValue)
+    {
+        HostilityInfo = newValue;
+        Vehicle_ObserverView.HostilityInfoProp = HostilityInfo;
+        if (Vehicle_BaseController != null)
+        {
+            Vehicle_BaseController.HostilityInfoProp = HostilityInfo;
+        }
     }
 
     private void InitFields()

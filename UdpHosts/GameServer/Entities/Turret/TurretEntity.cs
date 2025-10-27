@@ -40,6 +40,7 @@ public sealed class TurretEntity : BaseEntity
     public byte Posture { get; set; }
     public uint GunnerPoseId { get; set; }
     public Vector3 GunnerPoseOffset { get; set; }
+    public HostilityInfoData HostilityInfo { get; set; }
 
     public void SetControllingPlayer(INetworkPlayer player)
     {
@@ -84,6 +85,16 @@ public sealed class TurretEntity : BaseEntity
     public void SetFireEnd(uint time)
     {
         Turret_ObserverView.WeaponBurstEndedProp = time;
+    }
+
+    public void SetHostilityInfo(HostilityInfoData newValue)
+    {
+        HostilityInfo = newValue;
+        Turret_ObserverView.HostilityInfoProp = HostilityInfo;
+        if (Turret_BaseController != null)
+        {
+            Turret_BaseController.HostilityInfoProp = HostilityInfo;
+        }
     }
 
     private void InitControllers()

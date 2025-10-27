@@ -510,6 +510,7 @@ public class SDBInterface
     public static DamageResponseDamageType GetDamageResponseDamageType(uint id) => DamageResponseDamageType.GetValueOrDefault(id);
     public static TinyObject GetTinyObject(uint id) => TinyObject.GetValueOrDefault(id);
     public static Faction GetFaction(uint id) => Faction.GetValueOrDefault(id);
+    public static List<Faction> GetFactions() => Faction.Select(pair => pair.Value).ToList();
     public static List<FactionRelations> GetFactionRelations() => FactionRelations;
     public static List<FactionReputations> GetFactionReputations(uint id) => FactionReputations.GetValueOrDefault(id);
 

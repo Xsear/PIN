@@ -453,6 +453,12 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             ArmyTag = string.Empty
         });
 
+        SetHostilityInfo(new HostilityInfoData
+        {
+            Flags = 0 | HostilityInfoData.HostilityFlags.Faction,
+            FactionId = (byte)monsterInfo.FactionId
+        });
+
         ApplyLoadout(loadout);
 
         // Temp hack to equip weapon
@@ -1535,9 +1541,18 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         }
     }
 
-    public void InitBody()
+    public void SetHostilityInfo(HostilityInfoData newValue)
     {
-        Shard.Physics.CreateKineticEntity(this);
+        HostilityInfo = newValue;
+        if (Character_ObserverView != null)
+        {
+            Character_ObserverView.HostilityInfoProp = HostilityInfo;
+        }
+
+        if (Character_BaseController != null)
+        {
+            Character_BaseController.HostilityInfoProp = HostilityInfo;
+        }
     }
 
     private void InitFields()
@@ -1560,11 +1575,11 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             State = CharacterStateData.CharacterStatus.Living,
             Time = Shard.CurrentTime
         };
-        HostilityInfo = new HostilityInfoData
+        SetHostilityInfo(new HostilityInfoData
         {
             Flags = 0 | HostilityInfoData.HostilityFlags.Faction,
-            FactionId = 1
-        };
+            FactionId = 1 // Accord
+        });
         SetMaxShields(0, true);
         SetMaxHealth(19192, true);
         GibVisualsInfo = new AeroMessages.GSS.V66.Character.GibVisuals

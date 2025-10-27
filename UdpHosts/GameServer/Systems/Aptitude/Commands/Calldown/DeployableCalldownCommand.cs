@@ -23,7 +23,9 @@ public class DeployableCalldownCommand : Command, ICommand
             var typeId = Params.DeployableType;
             var position = request.Position;
             var orientation = request.Rotation;
-            entityMan.SpawnDeployable(typeId, position, orientation, caller as CharacterEntity);
+            var useOwnerFaction = Params.UseOwnerFaction == 1;
+            var factionOverride = Params.OverrideFactionId;
+            entityMan.SpawnDeployable(typeId, position, orientation, caller as CharacterEntity, useOwnerFaction, factionOverride);
 
             return true;
         }

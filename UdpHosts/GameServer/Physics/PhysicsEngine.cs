@@ -655,12 +655,12 @@ public class PhysicsEngine
                 Unk8 = new AeroMessages.GSS.V66.TookDebugWeaponHitRelatedData
                 {
                     Target = hitEntity.AeroEntityId,
-                    Unk2 = poseOrigin,
-                    Unk3 = Quaternion.Identity,
+                    Origin = poseOrigin,
+                    Orientation = Quaternion.Identity,
                     Unk4 = 0,
                     Unk5 = 0xFF,
                 },
-                HaveUnk9 = 0,
+                HaveRagdoll = 0,
             }
         };
         if (source.IsPlayerControlled && source.Player.Preferences.DebugWeapon > 0)

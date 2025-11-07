@@ -40,7 +40,7 @@ public class DebugPersonalFactionStanceServerCommand : ServerCommand
 
         // Get the bitfield
         var prevData = (PersonalFactionStanceData)character.Character_BaseController.PersonalFactionStanceProp;
-        PersonalFactionStanceBitfield field = value1 == 1 ? prevData.Unk1 : prevData.Unk2;
+        PersonalFactionStanceBitfield field = value1 == 1 ? prevData.Friendly : prevData.Hostile;
 
         // Get the faction value
         byte index = (byte)(factionId - 1);
@@ -62,11 +62,11 @@ public class DebugPersonalFactionStanceServerCommand : ServerCommand
         var newData = prevData;
         if (value1 == 1)
         {
-            newData.Unk1 = field;
+            newData.Friendly = field;
         }
         else
         {
-            newData.Unk2 = field;
+            newData.Hostile = field;
         }
 
         // Sync
@@ -86,10 +86,10 @@ public class DebugPersonalFactionStanceServerCommand : ServerCommand
         var data = (PersonalFactionStanceData)character.Character_BaseController.PersonalFactionStanceProp;
 
         StringBuilder builder = new StringBuilder();
-        builder.AppendLine("Field 1:");
-        BuildFieldState(builder, data.Unk1);
-        builder.AppendLine("Field 2:");
-        BuildFieldState(builder, data.Unk2);
+        builder.AppendLine("Friendly:");
+        BuildFieldState(builder, data.Friendly);
+        builder.AppendLine("Hostile:");
+        BuildFieldState(builder, data.Hostile);
         var message = builder.ToString();
 
         Log.Information(message);

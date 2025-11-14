@@ -24,7 +24,6 @@ using GameServer.Entities.Thumper;
 using GameServer.Entities.Turret;
 using GameServer.Entities.Vehicle;
 using GameServer.Extensions;
-using GameServer.Physics;
 using Serilog;
 using Timer = System.Threading.Timer;
 
@@ -38,8 +37,6 @@ public class EntityManager
     private readonly ILogger _logger;
     private readonly GameServerSettings _settings;
 
-    private uint Counter = 0;
-
     private ulong LastUpdateFlush = 0;
     private ulong UpdateFlushIntervalMs = 5;
     private ulong LastScopeIn = 0;
@@ -48,9 +45,12 @@ public class EntityManager
     private ulong ScopeCheckIntervalMs = 5000;
     private ulong LastLifetimeCheck = 0;
     private ulong LifetimeCheckIntervalMs = 1000;
-    private bool hasSpawnedTestEntities = false;
+    private bool hasSpawnedZoneEntities = false;
 
     private ConcurrentDictionary<ulong, HashSet<INetworkPlayer>> ScopedPlayersByEntity = new ConcurrentDictionary<ulong, HashSet<INetworkPlayer>>();
+
+
+    private ConcurrentDictionary<ulong, Dictionary<INetworkPlayer, HashSet<Enums.GSS.Controllers>>> ScopedPlayerViewsByEntity = new ConcurrentDictionary<ulong, Dictionary<INetworkPlayer, HashSet<Enums.GSS.Controllers>>>();
 
     private ConcurrentQueue<ScopeInRequest> QueuedScopeIn = new ConcurrentQueue<ScopeInRequest>();
     private ConcurrentDictionary<ulong, Lifetime> LifetimeByEntity = new ConcurrentDictionary<ulong, Lifetime>();
@@ -277,13 +277,21 @@ public class EntityManager
 
     public AreaVisualDataEntity SpawnAreaVisualData(Vector3 position, ScopingComponent scoping)
     {
-        var areaVisualData = new AreaVisualDataEntity(_shard, _shard.GetNextGuid())
+        var areaVisualData = new AreaVisualDataEntity(_shard, _shard.GetNextGuid(), position)
         {
             Scoping = scoping,
-            Position = position,
         };
         Add(areaVisualData.EntityId, areaVisualData);
         return areaVisualData;
+    }
+
+    public AreaVisualDataEntity CreateAreaVisuals(Vector3 position, ScopingComponent scoping)
+    {
+        var areaVisuals = new AreaVisualDataEntity(_shard, _shard.GetNextGuid(), position)
+        {
+            Scoping = scoping,
+        };
+        return areaVisuals;
     }
 
     public OutpostEntity SpawnOutpost(Outpost outpost)
@@ -324,21 +332,6 @@ public class EntityManager
         return carryableEntity;
     }
 
-    public void TempSpawnTestEntities()
-    {
-        // Aero
-        var aero = SpawnCharacter(356, new Vector3(167.84642f, 262.20822f, 491.86758f));
-
-        // Battleframe Station
-        SpawnDeployable(395, new Vector3(170.84642f, 243.20822f, 491.71597f), new Quaternion(0f, 0f, 0.92874485f, 0.37071964f));
-
-        // Thumper
-        _shard.EncounterMan.CreateThumper(20, new Vector3(158.3f, 249.3f, 491.93f), aero, SDBInterface.GetResourceNodeBeaconCalldownCommandDef(766269));
-
-        // Datapad
-        SpawnCarryable(26, new Vector3(160.3f, 250.3f, 491.93f));
-    }
-
     public void SpawnZoneEntities(uint zoneId)
     {
         // Deployable
@@ -370,6 +363,9 @@ public class EntityManager
             var outpost = entry.Value;
             SpawnOutpost(outpost);
         }
+
+        // Testing
+        TempSpawnTestEntities();
     }
 
     public void SetRemainingLifetime(IEntity entity, uint timeMs)
@@ -383,35 +379,12 @@ public class EntityManager
     public void Tick(double deltaTime, ulong currentTime, CancellationToken ct)
     {
         // Spawn test entities on first real tick
-        if (!hasSpawnedTestEntities && currentTime != 0)
+        if (!hasSpawnedZoneEntities && currentTime != 0)
         {
-            hasSpawnedTestEntities = true;
-
+            hasSpawnedZoneEntities = true;
             if (_settings.LoadZoneEntities)
             {
                 SpawnZoneEntities(_shard.ZoneId);
-
-                // TODO: Remove these in favor of using the files instead
-                if (_shard.ZoneId == 448)
-                {
-                    TempSpawnTestEntities();
-                }
-
-                if (_shard.ZoneId == 12 || _shard.ZoneId == 1003)
-                {
-                    // var owner = SpawnCharacter(2312, new Vector3(1.5f, 3f, 0f));
-                    // SpawnCharacter(2385, new Vector3(1.5f, 3f, 0f));
-                    // SpawnVehicle(116, new Vector3(-1.5f, 3f, 0f), Quaternion.Identity, owner, false);
-                    // SpawnVehicle(201, new Vector3(-1.5f, 7f, 0f), Quaternion.Identity, owner, false);
-
-                    // Faction test
-                    var accord = SpawnCharacter(290, new Vector3(1.5f, 15f, 0f)); // Accord Assault (1)
-                    var chosen = SpawnCharacter(1196, new Vector3(3.5f, 15f, 0f)); // Chosen Fiend (2)
-                    var melding = SpawnCharacter(528, new Vector3(5.5f, 15f, 0f)); // Melded Aranha (6)
-                    var gaea = SpawnCharacter(2342, new Vector3(7.5f, 15f, 0f)); // Aranha (7)
-                    var tanken = SpawnCharacter(2407, new Vector3(9.5f, 15f, 0f)); // Tanken Saboteur (17)
-                    var blackh = SpawnCharacter(1304, new Vector3(11.5f, 15f, 0f)); // Black Hills Bandit (22)
-                }
             }
         }
 
@@ -459,6 +432,66 @@ public class EntityManager
 
             foreach (var entity in entities)
             {
+                // Process Area Visuals per-view scoping for scoped in entities
+                if (entity is AreaVisualDataEntity avd)
+                {
+                    // Update Area Visuals state
+                    avd.ClearInactiveViews();
+
+                    // Process
+                    foreach (var (player, scopedViews) in ScopedPlayerViewsByEntity[avd.EntityId])
+                    {
+                        foreach (var typecode in AreaVisualDataEntity.ValidViews)
+                        {
+                            IAeroViewInterface view = null;
+                            bool isScoped = scopedViews.Contains(typecode);
+                            bool isActive = false;
+                            switch (typecode)
+                            {
+                                case Enums.GSS.Controllers.AreaVisualData_ObserverView:
+                                    view = avd.AreaVisualData_ObserverView;
+                                    isActive = avd.IsObserverActive;
+                                    break;
+                                case Enums.GSS.Controllers.AreaVisualData_ForceShieldView:
+                                    view = avd.AreaVisualData_ForceShieldView;
+                                    isActive = avd.IsForceShieldActive;
+                                    break;
+                                case Enums.GSS.Controllers.AreaVisualData_LootObjectView:
+                                    view = avd.AreaVisualData_LootObjectView;
+                                    isActive = avd.IsLootObjecActive;
+                                    break;
+                                case Enums.GSS.Controllers.AreaVisualData_MapMarkerView:
+                                    view = avd.AreaVisualData_MapMarkerView;
+                                    isActive = avd.IsMapMarkerActive;
+                                    break;
+                                case Enums.GSS.Controllers.AreaVisualData_ParticleEffectsView:
+                                    view = avd.AreaVisualData_ParticleEffectsView;
+                                    isActive = avd.IsParticleEffectsActive;
+                                    break;
+                                case Enums.GSS.Controllers.AreaVisualData_TinyObjectView:
+                                    view = avd.AreaVisualData_TinyObjectView;
+                                    isActive = avd.IsTinyObjectActive;
+                                    break;
+                            }
+
+                            bool scopeIn = isActive && !isScoped;
+                            bool scopeOut = !isActive && isScoped;
+
+                            if (scopeIn)
+                            {
+                                scopedViews.Add(typecode);
+                                player.NetChannels[ChannelType.ReliableGss].SendViewKeyframe(view, entity.EntityId);
+                            }
+                            else if (scopeOut)
+                            {
+                                scopedViews.Remove(typecode);
+                                player.NetChannels[ChannelType.ReliableGss].SendViewScopeOut(view, entity.EntityId);
+                            }
+                        }
+                    }
+                }
+
+                // Main entity processing
                 float distanceThreshold = entity.GetScopeRange();
                 var currentlyScoped = ScopedPlayersByEntity[entity.EntityId];
                 var entityPosition = entity.Position;
@@ -516,6 +549,8 @@ public class EntityManager
     {
         AddToPhysics(entity);
         ScopedPlayersByEntity.TryAdd(guid, new());
+        ScopedPlayerViewsByEntity.TryAdd(guid, new());
+
         _shard.Entities.Add(guid, entity);
         OnAddedEntity(entity);
     }
@@ -538,6 +573,7 @@ public class EntityManager
             OnRemovedEntity(entity);
             _shard.Entities.Remove(guid);
             ScopedPlayersByEntity.TryRemove(guid, out var v);
+            ScopedPlayerViewsByEntity.TryRemove(guid, out var v2);
         }
     }
 
@@ -1091,6 +1127,7 @@ public class EntityManager
         }
 
         ScopedPlayersByEntity[entity.EntityId].Add(player);
+        ScopedPlayerViewsByEntity[entity.EntityId].Add(player, new());
 
         if (entity is CharacterEntity character)
         {
@@ -1287,36 +1324,42 @@ public class EntityManager
             var observer = avd.AreaVisualData_ObserverView;
             if (observer != null)
             {
+                ScopedPlayerViewsByEntity[entity.EntityId][player].Add(Enums.GSS.Controllers.AreaVisualData_ObserverView);
                 player.NetChannels[ChannelType.ReliableGss].SendViewKeyframe(observer, entity.EntityId);
             }
 
             var particleEffects = avd.AreaVisualData_ParticleEffectsView;
             if (particleEffects != null)
             {
+                ScopedPlayerViewsByEntity[entity.EntityId][player].Add(Enums.GSS.Controllers.AreaVisualData_ParticleEffectsView);
                 player.NetChannels[ChannelType.ReliableGss].SendViewKeyframe(particleEffects, entity.EntityId);
             }
 
             var mapMarker = avd.AreaVisualData_MapMarkerView;
             if (mapMarker != null)
             {
+                ScopedPlayerViewsByEntity[entity.EntityId][player].Add(Enums.GSS.Controllers.AreaVisualData_MapMarkerView);
                 player.NetChannels[ChannelType.ReliableGss].SendViewKeyframe(mapMarker, entity.EntityId);
             }
 
             var tinyObject = avd.AreaVisualData_TinyObjectView;
             if (tinyObject != null)
             {
+                ScopedPlayerViewsByEntity[entity.EntityId][player].Add(Enums.GSS.Controllers.AreaVisualData_TinyObjectView);
                 player.NetChannels[ChannelType.ReliableGss].SendViewKeyframe(tinyObject, entity.EntityId);
             }
 
             var lootObject = avd.AreaVisualData_LootObjectView;
             if (lootObject != null)
             {
+                ScopedPlayerViewsByEntity[entity.EntityId][player].Add(Enums.GSS.Controllers.AreaVisualData_LootObjectView);
                 player.NetChannels[ChannelType.ReliableGss].SendViewKeyframe(lootObject, entity.EntityId);
             }
 
             var forceShield = avd.AreaVisualData_ForceShieldView;
             if (forceShield != null)
             {
+                ScopedPlayerViewsByEntity[entity.EntityId][player].Add(Enums.GSS.Controllers.AreaVisualData_ForceShieldView);
                 player.NetChannels[ChannelType.ReliableGss].SendViewKeyframe(forceShield, entity.EntityId);
             }
         }
@@ -1331,7 +1374,9 @@ public class EntityManager
         }
 
         ScopedPlayersByEntity[entity.EntityId].Remove(player);
+        ScopedPlayerViewsByEntity[entity.EntityId].Remove(player);
 
+        // FIXME: We should ideally be able to send remove/scope outs for all views that we sent down, but right now we might not be able to if set something to null
         if (entity is CharacterEntity character)
         {
             if (character.IsPlayerControlled && character.Player == player)
@@ -1766,6 +1811,64 @@ public class EntityManager
         if (entity is IPhysicsEntity)
         {
             _shard.Physics.RemoveEntity(entity);
+        }
+    }
+
+    private void TempSpawnTestEntities()
+    {
+        // TODO: Remove these in favor of using the files instead
+        if (_shard.ZoneId == 448)
+        {
+            // Aero
+            var aero = SpawnCharacter(356, new Vector3(167.84642f, 262.20822f, 491.86758f));
+
+            // Battleframe Station
+            SpawnDeployable(395, new Vector3(170.84642f, 243.20822f, 491.71597f), new Quaternion(0f, 0f, 0.92874485f, 0.37071964f));
+
+            // Thumper
+            _shard.EncounterMan.CreateThumper(20, new Vector3(158.3f, 249.3f, 491.93f), aero, SDBInterface.GetResourceNodeBeaconCalldownCommandDef(766269));
+
+            // Datapad
+            SpawnCarryable(26, new Vector3(160.3f, 250.3f, 491.93f));
+        }
+
+        if (_shard.ZoneId == 12 || _shard.ZoneId == 1003)
+        {
+            bool vehicleTest = false;
+            bool factionTest = false;
+            if (vehicleTest)
+            {
+                var owner = SpawnCharacter(2312, new Vector3(1.5f, 3f, 0f));
+                SpawnCharacter(2385, new Vector3(1.5f, 3f, 0f));
+                SpawnVehicle(116, new Vector3(-1.5f, 3f, 0f), Quaternion.Identity, owner, false);
+                SpawnVehicle(201, new Vector3(-1.5f, 7f, 0f), Quaternion.Identity, owner, false);
+            }
+
+            if (factionTest)
+            {
+                var accord = SpawnCharacter(290, new Vector3(1.5f, 15f, 0f)); // Accord Assault (1)
+                var chosen = SpawnCharacter(1196, new Vector3(3.5f, 15f, 0f)); // Chosen Fiend (2)
+                var melding = SpawnCharacter(528, new Vector3(5.5f, 15f, 0f)); // Melded Aranha (6)
+                var gaea = SpawnCharacter(2342, new Vector3(7.5f, 15f, 0f)); // Aranha (7)
+                var tanken = SpawnCharacter(2407, new Vector3(9.5f, 15f, 0f)); // Tanken Saboteur (17)
+                var blackh = SpawnCharacter(1304, new Vector3(11.5f, 15f, 0f)); // Black Hills Bandit (22)
+            }
+        }
+    }
+
+    private void SendViewChecksumOrKeyframe(IAeroViewInterface view, ulong entityId, Enums.GSS.Controllers typecode, uint clientChecksum, INetworkClient client)
+    {
+        if (view != null)
+        {
+            uint ourChecksum = view.SerializeToChecksum();
+            if (clientChecksum == ourChecksum)
+            {
+                client.NetChannels[ChannelType.ReliableGss].SendChecksum(entityId, typecode, clientChecksum);
+            }
+            else
+            {
+                client.NetChannels[ChannelType.ReliableGss].SendViewKeyframe(view, entityId);
+            }
         }
     }
 

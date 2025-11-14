@@ -45,30 +45,32 @@ public class LgvRace : BaseEncounter, IExitAttachmentHandler, IProximityHandler,
             SoloParticipant.CharacterEntity,
             true);
         vehicle.Encounter = new EncounterComponent()
-            {
-                EncounterId = entityId, Instance = this, Events = EncounterComponent.Event.ExitAttachment
-            };
+        {
+            EncounterId = entityId,
+            Instance = this,
+            Events = EncounterComponent.Event.ExitAttachment
+        };
 
         View = new HudTimerView()
-               {
-                   hudtimer_labelProp = data.Label,
-                   hudtimer_timerProp = new SinCardTimer()
-                   {
-                       Micro = (startTime + data.TimeLimitMs) * 1000,
-                       State = SinCardTimer.TimerState.CountingDown,
-                   },
-               };
+        {
+            hudtimer_labelProp = data.Label,
+            hudtimer_timerProp = new SinCardTimer()
+            {
+                Micro = (startTime + data.TimeLimitMs) * 1000,
+                State = SinCardTimer.TimerState.CountingDown,
+            },
+        };
 
         PlayDialog(data.StartDialog);
 
         bonusTimeMs = data.BonusTimeLimitMs;
         var bonusTimeDialog = (data.TimeLimitMs - data.BonusTimeLimitMs) switch
-            {
-                30_000 => 11155u,
-                45_000 => 11060u,
-                60_000 => 11133u,
-                _  => 0u,
-            };
+        {
+            30_000 => 11155u,
+            45_000 => 11060u,
+            60_000 => 11133u,
+            _ => 0u,
+        };
 
         var timer = new Timer(state =>
             {
@@ -82,25 +84,27 @@ public class LgvRace : BaseEncounter, IExitAttachmentHandler, IProximityHandler,
         timer.Change(30_000, Timeout.Infinite);
 
         finishLine = Shard.EntityMan.SpawnAreaVisualData(data.Finish.Position, new ScopingComponent() { Range = 150 });
-        finishLine.AreaVisualData_ParticleEffectsView.ParticleEffects_0Prop = new ParticleEffect()
-            {
-                PfxEntityId = AeroEntityId,
-                PfxAssetId = _pfxFinishLine,
-                Position = data.Finish.Position,
-                Rotation = data.Finish.Orientation,
-                Unk9 = 1,
-                Unk10 = 1,
-                Scale = 0.7f,
-                HaveUnk4 = 0,
-                HaveUnk12 = 0,
-            };
+        finishLine.SetPosition(data.Finish.Position);
+        finishLine.AddParticleEffect(new ParticleEffect()
+        {
+            PfxEntityId = AeroEntityId,
+            PfxAssetId = _pfxFinishLine,
+            Position = data.Finish.Position,
+            Rotation = data.Finish.Orientation,
+            Unk9 = 1,
+            Unk10 = 1,
+            Scale = 0.7f,
+            HaveUnk4 = 0,
+            HaveUnk12 = 0,
+        });
+
         finishLine.Encounter = new EncounterComponent()
-            {
-                EncounterId = entityId,
-                Instance = this,
-                Events = EncounterComponent.Event.Proximity,
-                ProximityDistance = 3,
-            };
+        {
+            EncounterId = entityId,
+            Instance = this,
+            Events = EncounterComponent.Event.Proximity,
+            ProximityDistance = 3,
+        };
         Shard.EncounterMan.AddCheckingOfProximity(finishLine, this);
 
         SoloParticipant.CharacterEntity.AddMapMarker(
@@ -171,11 +175,11 @@ public class LgvRace : BaseEncounter, IExitAttachmentHandler, IProximityHandler,
         RewardWithResource(_crystite, crystite);
 
         var msg = new DisplayRewards()
-                {
-                    ResourceTargetId = new EntityId() { Backing = 0 },
-                    Experience = exp,
-                    Reputations = new ReputationInfo[] { },
-                    Rewards1 = new RewardInfoData[]
+        {
+            ResourceTargetId = new EntityId() { Backing = 0 },
+            Experience = exp,
+            Reputations = new ReputationInfo[] { },
+            Rewards1 = new RewardInfoData[]
                                {
                                    new RewardInfoData()
                                    {
@@ -198,33 +202,33 @@ public class LgvRace : BaseEncounter, IExitAttachmentHandler, IProximityHandler,
                                        Module2 = 0
                                    }
                                },
-                    Rewards2 = new RewardInfoData[] { },
-                    Stats = new StatInfo[]
+            Rewards2 = new RewardInfoData[] { },
+            Stats = new StatInfo[]
                             {
                                 new StatInfo()
                                 {
                                     NameId = _finalTime, Type = StatInfo.StatType.Time, Value = time / 1000f, Unk3 = string.Empty,
                                 }
                             },
-                    Unk1 = 0,
-                    IndexId = 1,
-                    DisplayQuality = 0,
-                    ScreenType = 0,
-                    ResourceTargetType = 0,
-                    TitleTextId = _lgvRace,
-                };
+            Unk1 = 0,
+            IndexId = 1,
+            DisplayQuality = 0,
+            ScreenType = 0,
+            ResourceTargetType = 0,
+            TitleTextId = _lgvRace,
+        };
 
         SoloParticipant.NetChannels[ChannelType.ReliableGss].SendMessage(msg, SoloParticipant.CharacterEntity.EntityId);
 
         _ = GRPCService.SendCommandAsync(new Command()
+        {
+            SaveLgvRaceFinish = new SaveLgvRaceFinish()
             {
-                SaveLgvRaceFinish = new SaveLgvRaceFinish()
-                    {
-                        CharacterGuid = SoloParticipant.CharacterId + 0xFE,
-                        LeaderboardId = leaderboardId,
-                        TimeMs = time,
-                    }
-            });
+                CharacterGuid = SoloParticipant.CharacterId + 0xFE,
+                LeaderboardId = leaderboardId,
+                TimeMs = time,
+            }
+        });
 
         base.OnSuccess();
     }

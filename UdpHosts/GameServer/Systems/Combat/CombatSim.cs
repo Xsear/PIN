@@ -6,7 +6,6 @@ using GameServer.Entities;
 using GameServer.Entities.Character;
 using GameServer.Entities.Deployable;
 using Serilog;
-
 namespace GameServer.Systems.Combat;
 
 public class CombatSim
@@ -24,8 +23,17 @@ public class CombatSim
         _entityMan = entityMan;
     }
 
-    public void TookWeaponHit(IEntity target, int damage, IEntity source = null)
+    public void TookWeaponHit(IEntity target, ProjectileSim.ProjectileSim.ProjectileData projectile, ProjectileSim.ProjectileSim.HitData hit)
     {
+        // TODO: DamageDecay?
+        var weaponDamage = projectile.SourceWeapon?.Weapon.DamagePerRound ?? 0;
+        var ammoDamageType = projectile.Ammo.Damagetype;
+        var ammoDamageResponse = projectile.Ammo.DamageResponse;
+        var source = projectile.SourceEntity;
+
+        var damageValue = 100;
+        int damage = (int)(damageValue * hit.DamageMod);
+
         if (damage <= 0)
         {
             _logger.Warning("Ignoring negative or 0 damage value {Damage}", damage);
@@ -83,6 +91,11 @@ public class CombatSim
 
         // Build feedback
         DamageResponseFlags damageFlags = 0;
+        if (hit.IsCrit || hit.IsHeadshot)
+        {
+            damageFlags |= DamageResponseFlags.Critical;
+        }
+
         ushort shortTime = _shard.CurrentShortTime;
         byte unk2 = 0;
         DamageHitStruct damageData = new()

@@ -154,6 +154,7 @@ public sealed class DeployableEntity : BaseAptitudeEntity, IAptitudeTarget, ICom
     public void SetHostilityInfo(HostilityInfoData newValue)
     {
         HostilityInfo = newValue;
+        Hostility.FactionId = newValue.FactionId;
         Deployable_ObserverView.HostilityInfoProp = HostilityInfo;
     }
 

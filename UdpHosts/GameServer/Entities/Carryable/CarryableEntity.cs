@@ -144,6 +144,7 @@ public sealed class CarryableEntity : BaseAptitudeEntity, IAptitudeTarget
     public void SetHostilityInfo(HostilityInfoData newValue)
     {
         HostilityInfo = newValue;
+        Hostility.FactionId = newValue.FactionId;
         CarryableObject_ObserverView.HostilityProp = HostilityInfo;
     }
 

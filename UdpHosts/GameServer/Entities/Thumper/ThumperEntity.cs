@@ -164,6 +164,7 @@ public sealed class ThumperEntity : BaseAptitudeEntity, IAptitudeTarget, ICommon
     public void SetHostilityInfo(HostilityInfoData newValue)
     {
         HostilityInfo = newValue;
+        Hostility.FactionId = newValue.FactionId;
         ResourceNode_ObserverView.HostilityInfoProp = HostilityInfo;
     }
 

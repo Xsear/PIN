@@ -20,6 +20,7 @@ public class PoseData
         Cylinder,
         Capsule,
         Triangle,
+        Box,
         HKX,
         Unknown
     }
@@ -84,6 +85,16 @@ public class PoseData
             if (values.TryGetValue("Rotation", out var rotStr))
             {
                 shape.Rotation = ParseRotation(rotStr);
+            }
+
+            if (values.TryGetValue("DamageMod", out var dmgStr))
+            {
+                shape.DamageMod = TryParseFloat(dmgStr);
+            }
+
+            if (values.TryGetValue("Extents", out var extStr))
+            {
+                shape.Extents = ParseVector3(extStr);
             }
 
             shapes[name] = shape;
@@ -193,11 +204,12 @@ public class PoseData
         public float? Radius { get; set; }
         public float? Height { get; set; }
         public int? Material { get; set; }
-        public float? DamageMod { get; set; }
+        public float? DamageMod { get; set; } = 1.0f;
         public string? HitTagType { get; set; }
         public Vector3? Vertex0 { get; set; }
         public Vector3? Vertex1 { get; set; }
         public Vector3? Vertex2 { get; set; }
+        public Vector3? Extents { get; set; }
         public string Filename { get; set; } = string.Empty;
     }
 }

@@ -547,6 +547,9 @@ public class SDBInterface
     public static PoseType GetPoseType(uint id) => PoseType.GetValueOrDefault(id);
     public static CharInfo GetCharInfo(uint id) => CharInfo.GetValueOrDefault(id);
 
+    // dbPhysicsMaterial
+    public static PhysicsMaterial GetPhysicsMaterial(uint id) => PhysicsMaterial.GetValueOrDefault(id);
+
     // dbvisualrecords
     public static WarpaintPalette GetWarpaintPalette(uint id) => WarpaintPalettes.GetValueOrDefault(id);
     public static VisualRecord GetVisualRecord(uint id) => VisualRecord.GetValueOrDefault(id);

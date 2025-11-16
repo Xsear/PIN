@@ -9,6 +9,7 @@ using BepuPhysics.Collidables;
 using BepuPhysics.Trees;
 using BepuUtilities;
 using BepuUtilities.Memory;
+using GameServer.Data.SDB;
 using GameServer.Data.SDB.Records.dbitems;
 using GameServer.Entities;
 using GameServer.Entities.Character;
@@ -509,11 +510,20 @@ public class PhysicsEngine
                     {
                         var body = Simulation.Bodies[hitHandler.HitCollidable.BodyHandle];
                         var shape = body.Collidable.Shape;
+                        bool headshot = false;
+                        bool crit = false;
+                        float damageMod = 1.0f;
                         if (_poseCompoundToAssetId.ContainsKey(shape))
                         {
                             var poseId = _poseCompoundToAssetId[shape];
                             var poseData = _assetIdToPoseCompoundData[poseId];
                             var poseShapeData = poseData[hitHandler.ChildIndex];
+                            var physicsMaterial = SDBInterface.GetPhysicsMaterial((uint)poseShapeData.Material); // TODO: Material can be 0 which will result in null here, but what should we do? Is there a default to fallback to?
+
+                            headshot = poseShapeData.ShapeFlags.Headshot;
+                            crit = physicsMaterial?.IsCritHit == 1;
+                            damageMod = poseShapeData.DamageMod;
+
                             _logger.Debug($"ProjectileRayCast Impact on {poseShapeData.Name}");
                             _shard.Chat.SendToAll($"You hit {poseShapeData.Name} of {hitEntity}", Enums.ChatChannel.Debug, source);
                         }
@@ -524,7 +534,10 @@ public class PhysicsEngine
                         var hit = new ProjectileSim.HitData
                         {
                             ImpactPosition = hitPosition,
-                            ImpactEntity = hitEntity
+                            ImpactEntity = hitEntity,
+                            IsHeadshot = headshot,
+                            IsCrit = crit,
+                            DamageMod = damageMod
                         };
                         _projectileSim.OnProjectileImpact(projectile, hit);
                     }

@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using AeroMessages.Common;
 using GameServer.Data.SDB;
+using GameServer.Systems.Combat;
 
 namespace GameServer.Entities;
 
@@ -11,6 +12,7 @@ public class BaseEntity : IEntity
         Shard = shard;
         EntityId = id;
         AeroEntityId = new EntityId() { Backing = EntityId, ControllerId = Controller.Generic };
+        Hostility = new HostilityComponent();
     }
 
     public ulong EntityId { get; }
@@ -57,30 +59,33 @@ public class BaseEntity : IEntity
 
     public bool IsHostile(uint otherFactionId)
     {
-        return true;
+        return FactionHostility.IsHostileFaction(Hostility.FactionId, otherFactionId);
     }
 
     public bool IsFriendly(uint otherFactionId)
     {
-        return false;
+        return FactionHostility.IsFriendlyFaction(Hostility.FactionId, otherFactionId);
     }
 
     public bool IsNeutral(uint otherFactionId)
     {
-        return false;
+        var hostile = IsHostile(otherFactionId);
+        var friendly = IsFriendly(otherFactionId);
+        return !hostile && !friendly;
     }
 
-    public void ComputePersonalFactionStance(uint factionId)
+    public bool IsFriendly(BaseEntity otherEntity)
     {
-        var factions = SDBInterface.GetFactions();
-        var totalBytes = (((uint)factions.Count >> 6) + 1) << 3; // 8
-        var byteIndex = 0;
-        var bitIndex = 0;
-        var friendly = new byte[totalBytes];
-        var hostile = new byte[totalBytes];
-        foreach (var faction in factions)
-        {
+        return IsFriendly(otherEntity.Hostility.FactionId);
+    }
 
-        }
+    public bool IsHostile(BaseEntity otherEntity)
+    {
+        return IsHostile(otherEntity.Hostility.FactionId);
+    }
+
+    public bool IsNeutral(BaseEntity otherEntity)
+    {
+        return IsNeutral(otherEntity.Hostility.FactionId);
     }
 }

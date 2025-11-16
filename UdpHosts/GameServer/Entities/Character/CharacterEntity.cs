@@ -1544,6 +1544,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     public void SetHostilityInfo(HostilityInfoData newValue)
     {
         HostilityInfo = newValue;
+        Hostility.FactionId = newValue.FactionId;
         if (Character_ObserverView != null)
         {
             Character_ObserverView.HostilityInfoProp = HostilityInfo;

@@ -613,6 +613,7 @@ public sealed class VehicleEntity : BaseAptitudeEntity, IAptitudeTarget, ICommon
     public void SetHostilityInfo(HostilityInfoData newValue)
     {
         HostilityInfo = newValue;
+        Hostility.FactionId = newValue.FactionId;
         Vehicle_ObserverView.HostilityInfoProp = HostilityInfo;
         if (Vehicle_BaseController != null)
         {

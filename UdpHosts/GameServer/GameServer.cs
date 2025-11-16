@@ -9,6 +9,7 @@ using GameServer.Controllers;
 using GameServer.Data.SDB;
 using GameServer.GRPC;
 using GameServer.Physics;
+using GameServer.Systems.Combat;
 using GameServer.Test;
 using Serilog;
 using Shared.Udp;
@@ -59,6 +60,7 @@ internal class GameServer : PacketServer
     {
         DataUtils.Init();
         Factory.Init();
+        FactionHostility.Init();
         NewShard(ct);
 
         _ = ListenGrpcAsync(ct);

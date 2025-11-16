@@ -90,6 +90,7 @@ public sealed class TurretEntity : BaseEntity
     public void SetHostilityInfo(HostilityInfoData newValue)
     {
         HostilityInfo = newValue;
+        Hostility.FactionId = newValue.FactionId;
         Turret_ObserverView.HostilityInfoProp = HostilityInfo;
         if (Turret_BaseController != null)
         {

@@ -65,14 +65,23 @@ public class ProjectileSim
     {
         if (hit.ImpactEntity != null)
         {
-            // TODO: DamageDecay?
-            var weaponDamage = projectile.SourceWeapon?.Weapon.DamagePerRound ?? 0;
-            var ammoDamageType = projectile.Ammo.Damagetype;
-            var ammoDamageResponse = projectile.Ammo.DamageResponse;
+            // Don't hit friendlies
+            bool isFriendly = false;
+            if (hit.ImpactEntity is BaseEntity impactBaseEntity)
+            {
+                if (projectile.SourceEntity is BaseEntity sourceBaseEntity)
+                {
+                    if (sourceBaseEntity.IsFriendly(impactBaseEntity))
+                    {
+                        isFriendly = true;
+                    }
+                }
+            }
 
-            var damageValue = 1337;
-
-            _combatSim.TookWeaponHit(hit.ImpactEntity, damageValue, projectile.SourceEntity);
+            if (!isFriendly)
+            {
+                _combatSim.TookWeaponHit(hit.ImpactEntity, projectile, hit);
+            }
         }
     }
 
@@ -92,5 +101,8 @@ public class ProjectileSim
     {
         public Vector3 ImpactPosition;
         public IEntity ImpactEntity;
+        public bool IsHeadshot;
+        public bool IsCrit;
+        public float DamageMod;
     }
 }

@@ -525,6 +525,6 @@ public class BaseController : Base
     {
         var query = packet.Unpack<FlushCharacterCache>();
 
-        Console.WriteLine($"FlushCharacterCache all: {query.Unk1}, items: {query.Unk2}, xplevel: {query.Unk3}, faction_reputation: {query.Unk4}, mission: {query.Unk5}");
+        Console.WriteLine($"FlushCharacterCache all: {query.All}, items: {query.Items}, xplevel: {query.XpLevel}, faction_reputation: {query.FactionReputation}, mission: {query.Mission}");
     }
 }

@@ -49,7 +49,6 @@ public class EntityManager
 
     private ConcurrentDictionary<ulong, HashSet<INetworkPlayer>> ScopedPlayersByEntity = new ConcurrentDictionary<ulong, HashSet<INetworkPlayer>>();
 
-
     private ConcurrentDictionary<ulong, Dictionary<INetworkPlayer, HashSet<Enums.GSS.Controllers>>> ScopedPlayerViewsByEntity = new ConcurrentDictionary<ulong, Dictionary<INetworkPlayer, HashSet<Enums.GSS.Controllers>>>();
 
     private ConcurrentQueue<ScopeInRequest> QueuedScopeIn = new ConcurrentQueue<ScopeInRequest>();
@@ -1127,7 +1126,7 @@ public class EntityManager
         }
 
         ScopedPlayersByEntity[entity.EntityId].Add(player);
-        ScopedPlayerViewsByEntity[entity.EntityId].Add(player, new());
+        ScopedPlayerViewsByEntity[entity.EntityId].TryAdd(player, new());
 
         if (entity is CharacterEntity character)
         {

@@ -365,7 +365,6 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
     public int CurrentShields { get; private set; } = 0;
 
     public CharacterPhysicsInfo PhysicsPoseInfo { get; set; }
-    public new bool HasPhysicsBody { get; set; } = true;
 
     internal MovementStateContainer MovementStateContainer { get; set; } = new();
 
@@ -1409,6 +1408,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
 
         float weaponAttributeSpread = 1f;
         float weaponAttributeRateOfFire = 1f;
+        float weaponAttributeDamage = 0;
         try
         {
             weaponAttributeSpread = weaponAttributesDict[(ushort)ItemAttributeId.WeaponSpread].Value;
@@ -1427,11 +1427,22 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             Console.WriteLine($"Failed to get RateOfFire Attribute");
         }
 
+        try
+        {
+            weaponAttributeDamage = weaponAttributesDict[(ushort)ItemAttributeId.WeaponDamage].Value;
+        }
+        catch (Exception)
+        {
+            Console.WriteLine($"Failed to get WeaponDamage Attribute");
+        }
+
         // Calculate spread factor using Main even for Underbarrel, based on testing in-game.
         // Bio Crossbow - Max spread 0, min spread 0.75, attribute spread 1, expected spread 0.75 => Ignore max spread if 0 and use attribute spread
         float spreadFactor = weaponDetails.Main.MaxSpread > 0f
             ? weaponAttributeSpread / weaponDetails.Main.MaxSpread
             : weaponAttributeSpread;
+
+        float weaponDamage = weaponAttributeDamage > 0f ? weaponAttributeDamage : weapon.DamagePerRound;
 
         return new ActiveWeaponDetails()
         {
@@ -1439,6 +1450,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
             WeaponId = weaponId,
             Spread = spreadFactor,
             RateOfFire = weaponAttributeRateOfFire,
+            DamagePerRound = weaponDamage,
         };
     }
 #nullable disable
@@ -1450,7 +1462,7 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
 
     public Vector3 GetProjectileOrigin(Vector3 aimDirection)
     {
-        var muzzleBase = new Vector3(0.2f, 0.0f, 1.62f); // TODO: Should probably vary by character
+        var muzzleBase = new Vector3(0.2f, 0.0f, 1.62f);
         if (IsCrouching)
         {
             muzzleBase.Z = 1.08f;
@@ -2392,5 +2404,6 @@ public sealed partial class CharacterEntity : BaseAptitudeEntity, IAptitudeTarge
         public uint WeaponId;
         public float Spread;
         public float RateOfFire;
+        public float DamagePerRound;
     }
 }

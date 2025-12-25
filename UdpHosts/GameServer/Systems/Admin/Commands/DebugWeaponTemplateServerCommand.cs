@@ -83,12 +83,10 @@ public class DebugWeaponTemplateServerCommand : ServerCommand
         stringBuilder.AppendLine($"MsChargeUpMin: {info.Weapon.MsChargeUpMin}");
         stringBuilder.AppendLine($"MsOverchargeDelay: {info.Weapon.MsOverchargeDelay}");
 
-        /*
         stringBuilder.AppendLine($"----- Damage");
         stringBuilder.AppendLine($"MinDamage: {info.Weapon.MinDamage}");
         stringBuilder.AppendLine($"DamagePerRound: {info.Weapon.DamagePerRound}");
         stringBuilder.AppendLine($"HeadshotMult: {info.Weapon.HeadshotMult}");
-        */
 
         stringBuilder.AppendLine($"----- ?");
         stringBuilder.AppendLine($"MsReturn: {info.Weapon.MsReturn}");

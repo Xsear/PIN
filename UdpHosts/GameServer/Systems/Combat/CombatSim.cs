@@ -26,12 +26,17 @@ public class CombatSim
     public void TookWeaponHit(IEntity target, ProjectileSim.ProjectileSim.ProjectileData projectile, ProjectileSim.ProjectileSim.HitData hit)
     {
         // TODO: DamageDecay?
-        var weaponDamage = projectile.SourceWeapon?.Weapon.DamagePerRound ?? 0;
+        var weaponDamage = projectile.SourceWeapon?.DamagePerRound ?? 0f;
         var ammoDamageType = projectile.Ammo.Damagetype;
         var ammoDamageResponse = projectile.Ammo.DamageResponse;
         var source = projectile.SourceEntity;
 
-        var damageValue = 100;
+        if (weaponDamage == 0)
+        {
+            _logger.Warning("Why is sourceweapon weaponDamage 0? WeaponId: {WeaponId}", projectile.SourceWeapon?.WeaponId);
+        }
+
+        var damageValue = weaponDamage;
         int damage = (int)(damageValue * hit.DamageMod);
 
         if (damage <= 0)

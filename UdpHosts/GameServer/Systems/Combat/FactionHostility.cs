@@ -27,6 +27,46 @@ public static class FactionHostility
         var relations = SDBInterface.GetFactionRelations();
         _factionFriendlyDict = new();
         _factionHostileDict = new();
+
+        foreach (var relation in relations)
+        {
+            if (relation.FactionA == 0)
+            {
+                foreach (var primaryFaction in factions)
+                {
+                    if (relation.FactionB == 0)
+                    {
+                        foreach (var secondaryFaction in factions)
+                        {
+                            ProcessFactionRelation(primaryFaction, secondaryFaction, relation);
+                        }
+                    }
+                    else
+                    {
+                        var secondaryFaction = factions[(int)relation.FactionB - 1];
+                        ProcessFactionRelation(primaryFaction, secondaryFaction, relation);
+                    }
+                }
+            }
+            else
+            {
+                var primaryFaction = factions[(int)relation.FactionA - 1];
+                if (relation.FactionB == 0)
+                {
+                    foreach (var secondaryFaction in factions)
+                    {
+                        ProcessFactionRelation(primaryFaction, secondaryFaction, relation);
+                    }
+                }
+                else
+                {
+                    var secondaryFaction = factions[(int)relation.FactionB - 1];
+                    ProcessFactionRelation(primaryFaction, secondaryFaction, relation);
+                }
+            }
+        }
+
+        /*
         foreach (var primaryFaction in factions)
         {
             foreach (var secondaryFaction in factions)
@@ -48,6 +88,7 @@ public static class FactionHostility
                 _factionHostileDict.Add(key, hostile);
             }
         }
+        */
 
         Log.Debug($"FactionHostility initalized");
     }
@@ -58,6 +99,7 @@ public static class FactionHostility
         var found = _factionFriendlyDict.TryGetValue(key, out bool result);
         if (found)
         {
+            Log.Debug($"FactionHostility {sourceFactionId} is {(result ? "" : "NOT")} Friendly with {targetFactionId}");
             return result;
         }
         else
@@ -73,6 +115,7 @@ public static class FactionHostility
         var found = _factionHostileDict.TryGetValue(key, out bool result);
         if (found)
         {
+            Log.Debug($"FactionHostility {sourceFactionId} is {(result ? "" : "NOT")} Hostile with {targetFactionId}");
             return result;
         }
         else
@@ -93,6 +136,51 @@ public static class FactionHostility
         foreach (var faction in factions)
         {
 
+        }
+    }
+
+    private static void ProcessFactionRelation(Faction primaryFaction, Faction secondaryFaction, FactionRelations relation)
+    {
+        var key = (primaryFaction.Id, secondaryFaction.Id);
+        bool friendly = false;
+        bool hostile = false;
+
+        if (relation.HostilityStance >= 1)
+        {
+            friendly = true;
+        }
+        else if (primaryFaction.DefaultStance <= -1)
+        {
+            hostile = true;
+        }
+
+        ProcessFactionRelationSet(key, friendly, hostile);
+
+        if (relation.HostilityBidirectional == 1)
+        {
+            var bikey = (secondaryFaction.Id, primaryFaction.Id);
+            ProcessFactionRelationSet(bikey, friendly, hostile);
+        }
+    }
+
+    private static void ProcessFactionRelationSet((uint, uint) key, bool friendly, bool hostile)
+    {
+        if (_factionFriendlyDict.ContainsKey(key))
+        {
+            _factionFriendlyDict[key] = friendly;
+        }
+        else
+        {
+            _factionFriendlyDict.Add(key, friendly);
+        }
+
+        if (_factionHostileDict.ContainsKey(key))
+        {
+            _factionHostileDict[key] = hostile;
+        }
+        else
+        {
+            _factionHostileDict.Add(key, hostile);
         }
     }
 }

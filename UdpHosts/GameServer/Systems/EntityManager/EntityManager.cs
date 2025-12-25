@@ -316,6 +316,8 @@ public class EntityManager
     {
         var beacon = SDBInterface.GetResourceNodeBeacon(commandDef.ResourceNodeBeaconId);
         var thumperEntity = new ThumperEntity(_shard, _shard.GetNextGuid(), nodeType, position, owner, commandDef);
+        thumperEntity.PhysicsPoseInfo = new();
+        thumperEntity.HasPhysicsBody = true;
         thumperEntity.PhysicsPoseInfo.HitboxCollisionId = beacon.PosefileId;
         thumperEntity.PhysicsPoseInfo.Scale = beacon.Scale;
 
@@ -1800,6 +1802,11 @@ public class EntityManager
             }
             else if (entity is ICommonPhysicsEntity common)
             {
+                if (entity is BaseEntity baseEntity && !baseEntity.HasPhysicsBody)
+                {
+                    _logger.Debug("AddToPhysics ignores {name} - HasPhysicsBody is false", baseEntity);
+                    return;
+                }
                 _shard.Physics.CreateKineticEntity(common);
             }
         }
@@ -1834,7 +1841,7 @@ public class EntityManager
         if (_shard.ZoneId == 12 || _shard.ZoneId == 1003)
         {
             bool vehicleTest = false;
-            bool factionTest = false;
+            bool factionTest = true;
             if (vehicleTest)
             {
                 var owner = SpawnCharacter(2312, new Vector3(1.5f, 3f, 0f));
@@ -1882,3 +1889,100 @@ public class EntityManager
         public ulong ExpireAt;
     }
 }
+
+
+/**
+public class NPCDeathEvent : Event
+{
+    public string NPCName { get; }
+    public int NPCId { get; }
+    public int PlayerId { get; }
+
+    public NPCDeathEvent(string npcName, int npcId, int playerId)
+    {
+        NPCName = npcName;
+        NPCId = npcId;
+        PlayerId = playerId;
+    }
+}
+
+*/
+
+/**
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+public class EventManager
+{
+    // Dictionary to store event type and their subscribers (listeners)
+    private readonly Dictionary<Type, List<Func<Event, Task>>> _eventListeners = new();
+
+    // Subscribe a listener to a specific event type
+    public void Subscribe<TEvent>(Func<TEvent, Task> listener) where TEvent : Event
+    {
+        var eventType = typeof(TEvent);
+        if (!_eventListeners.ContainsKey(eventType))
+        {
+            _eventListeners[eventType] = new List<Func<Event, Task>>();
+        }
+
+        // Add the listener for this event type
+        _eventListeners[eventType].Add(async e => await listener((TEvent)e));
+    }
+
+    // Unsubscribe a listener from a specific event type
+    public void Unsubscribe<TEvent>(Func<TEvent, Task> listener) where TEvent : Event
+    {
+        var eventType = typeof(TEvent);
+        if (_eventListeners.ContainsKey(eventType))
+        {
+            _eventListeners[eventType].RemoveAll(l => l.Equals(listener));
+        }
+    }
+
+    // Publish an event to all listeners
+    public async Task PublishAsync(Event eventArgs)
+    {
+        var eventType = eventArgs.GetType();
+        if (_eventListeners.ContainsKey(eventType))
+        {
+            var listeners = _eventListeners[eventType];
+            var tasks = new List<Task>();
+
+            foreach (var listener in listeners)
+            {
+                tasks.Add(listener(eventArgs));
+            }
+
+            await Task.WhenAll(tasks); // Wait for all listeners to finish asynchronously
+        }
+    }
+}
+
+*/
+
+/**
+public class LootDropManager
+{
+    private readonly EventManager _eventManager;
+
+    public LootDropManager(EventManager eventManager)
+    {
+        _eventManager = eventManager;
+        _eventManager.Subscribe<NPCDeathEvent>(HandleLootDropAsync);
+    }
+
+    // Loot drop logic for when an NPC dies
+    private async Task HandleLootDropAsync(NPCDeathEvent npcDeathEvent)
+    {
+        Console.WriteLine($"Loot dropping for NPC: {npcDeathEvent.NPCName} (ID: {npcDeathEvent.NPCId})");
+
+        // Simulate async loot drop logic (e.g., database calls or network interactions)
+        await Task.Delay(1000); // Simulating async operation
+
+        Console.WriteLine($"Loot successfully dropped for Player {npcDeathEvent.PlayerId}");
+    }
+}
+
+*/

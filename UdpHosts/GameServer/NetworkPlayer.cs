@@ -340,7 +340,7 @@ public class NetworkPlayer : NetworkClient, INetworkPlayer
             {
                 MicroUnix_1 = 1478970208392232,
                 MicroUnix_2 = 1478774752697322,
-                Timescale = 1.0,
+                Timescale = 1,
                 Unk3 = 0,
                 Unk4 = 0,
                 Paused = 0

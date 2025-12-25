@@ -125,17 +125,19 @@ public class PhysicsEngine
         // Default shapes
         _fallbackShape = Simulation.Shapes.Add(new Sphere(0.9f));
 
+        // We need TagfileLoader for poses, always make it.
+        TagfileLoader = new TagfileLoader(Simulation, BufferPool, PhysicsThreadDispatcher, _logger);
+
         // Load zone
         if (_settings.LoadMapsCollision)
         {
-            TagfileLoader = new TagfileLoader(Simulation, BufferPool, PhysicsThreadDispatcher, _logger);
             ZoneLoader = new ZoneLoader.ZoneLoader(Simulation, BufferPool, PhysicsThreadDispatcher, TagfileLoader, _logger);
             ZoneLoader.LoadCollision(_settings.MapsPath,
                 _shard.ZoneId,
                 () =>
                 {
                     _logger.Information("ZoneLoader Done");
-                    if (true)
+                    if (_settings.PhysicsDebugViewer)
                     {
                         _logger.Information("Starting Physics DebugView");
                         DebugView.Init(this);

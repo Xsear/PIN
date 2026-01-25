@@ -127,7 +127,12 @@ public class NetworkPlayer : NetworkClient, INetworkPlayer
             outpostId = zone.DefaultOutpostId;
         }
 
-        Logger.Verbose("Zone {0} Outpost {1}", zoneId, outpostId);
+        if (zone.ID != zoneId)
+        {
+            Logger.Error("The ZoneId is not in the hardcoded spawn directory SO WE LOADED A DIFFERENT ZONE!?"); // FIXME: WTF
+        }
+
+        Logger.Debug("Zone {0} Outpost {1}", zoneId, outpostId);
 
         EnterZone(zone, outpostId);
     }

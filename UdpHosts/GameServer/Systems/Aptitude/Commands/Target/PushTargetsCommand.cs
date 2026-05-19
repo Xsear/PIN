@@ -12,21 +12,41 @@ public class PushTargetsCommand : Command, ICommand
         Params = par;
     }
 
-    public bool Execute(Context context)
+    // TODO: Should this reset the context targets lists after push?
+    // NOTE: Target stack overflow does not affect result code
+    public override void Execute(Context context, ref CommandResult result)
     {
-        // todo aptitude: verify what to push
-        if (Params.Former == 1 && context.FormerTargets.Count > 0)
+        if (Params.Current != 0)
         {
-            // assuming push == saving for later, this shouldnt occur and it doesnt in 1962
-            Logger.Debug("[PushTargets] Former = 1, FormerTargets count {count}", context.FormerTargets.Count);
+            if (context.TargetsStack.Count < 101)
+            {
+                var copy = new AptitudeTargets(context.Targets);
+                context.TargetsStack.Push(copy);
+            }
+            else
+            {
+                Logger.Error("Target stack overflow");
+            }
         }
 
-        if (Params.Current == 1)
+        if (Params.Former != 0)
         {
-            context.FormerTargets = new AptitudeTargets(context.Targets);
-            context.Targets = new AptitudeTargets();
+            if (context.TargetsStack.Count < 100)
+            {
+                var copy = new AptitudeTargets(context.FormerTargets);
+                context.TargetsStack.Push(copy);
+            }
+            else
+            {
+                Logger.Error("Target stack overflow");
+            }
         }
 
-        return true;
+        result.SetPass(StatusCode.None);
+    }
+
+    public override void Reset(Context context)
+    {
+        return;
     }
 }

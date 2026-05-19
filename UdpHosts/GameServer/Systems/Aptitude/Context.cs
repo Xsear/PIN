@@ -27,6 +27,7 @@ public class Context
     public IAptitudeTarget Initiator { get; set; }
     public AptitudeTargets Targets { get; set; }
     public AptitudeTargets FormerTargets { get; set; }
+    public Stack<AptitudeTargets> TargetsStack { get; set; } = new();
     public float Register { get; set; }
     public float FormerRegister { get; set; }
     public int Bonus { get; set; }
@@ -34,6 +35,7 @@ public class Context
     public Vector3 InitPosition { get; set; }
     public ExecutionHint ExecutionHint { get; set; }
     public Guid ExecutionId { get; set; }
+    public CommandResult PreviousResult { get; set; }
 
     public Dictionary<ICommand, ICommandActiveContext> Actives { get; set; } = [];
 
@@ -50,6 +52,7 @@ public class Context
             Initiator = original.Initiator,
             Targets = original.Targets,
             FormerTargets = original.FormerTargets,
+            TargetsStack = original.TargetsStack,
             Register = original.Register,
             Bonus = original.Bonus,
             InitTime = original.InitTime,

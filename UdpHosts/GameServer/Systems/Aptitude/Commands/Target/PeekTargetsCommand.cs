@@ -12,24 +12,37 @@ public class PeekTargetsCommand : Command, ICommand
         Params = par;
     }
 
-    public bool Execute(Context context)
+    public override void Execute(Context context, ref CommandResult result)
     {
         /* Former = 1 appears once in SDB, Current = 1 appears 107 times, they are mutually exclusive */
 
-        if (Params.Former == 1)
+        if (Params.Former != 0)
         {
-            var ok = context.FormerTargets.TryPeek(out _);
+            if (context.TargetsStack.Count == 0)
+            {
+                result.SetFail(StatusCode.Status1);
+                return;
+            }
 
-            return ok;
+            context.FormerTargets = new AptitudeTargets(context.TargetsStack.Peek());
         }
 
-        if (Params.Current == 1)
+        if (Params.Current != 0)
         {
-            var ok = context.Targets.TryPeek(out _);
+            if (context.TargetsStack.Count == 0)
+            {
+                result.SetFail(StatusCode.Status1);
+                return;
+            }
 
-            return ok;
+            context.Targets = new AptitudeTargets(context.TargetsStack.Peek());
         }
 
-        return true;
+        result.SetPass(StatusCode.None);
+    }
+
+    public override void Reset(Context context)
+    {
+        return;
     }
 }

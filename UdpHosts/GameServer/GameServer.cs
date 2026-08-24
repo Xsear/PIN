@@ -68,19 +68,13 @@ internal class GameServer : PacketServer
         Logger.Information("Server is ready to accept connections.");
     }
 
-    protected override async void ServerRunThreadAsync(CancellationToken ct)
-    {
-        Packet? packet;
-        while ((packet = await IncomingPackets.ReceiveAsync(ct)) != null)
-        {
-            HandlePacket(packet.Value, ct);
-        }
-    }
-
     protected override void HandlePacket(Packet packet, CancellationToken ct)
     {
-        Logger.Verbose("[GAME] {RemoteEndpoint} sent {PacketLength} bytes.", packet.RemoteEndpoint, packet.PacketData.Length);
-        Logger.Verbose(">  {PacketData}", BitConverter.ToString(packet.PacketData.ToArray()).Replace("-", " "));
+        if (Logger.IsEnabled(Serilog.Events.LogEventLevel.Verbose))
+        {
+            Logger.Verbose("[GAME] {RemoteEndpoint} sent {PacketLength} bytes.", packet.RemoteEndpoint, packet.PacketData.Length);
+            Logger.Verbose(">  {PacketData}", BitConverter.ToString(packet.PacketData.ToArray()).Replace("-", " "));
+        }
 
         var client = RetrieveClient(packet, ct);
         client.HandlePacket(packet.PacketData[4..], packet);

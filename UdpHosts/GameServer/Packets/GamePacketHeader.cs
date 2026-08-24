@@ -15,6 +15,11 @@ public readonly struct GamePacketHeader
                                 (len & 0x07FF));
     }
 
+    public GamePacketHeader(ushort rawHeader)
+    {
+        PacketHeader = rawHeader;
+    }
+
     public ChannelType Channel => (ChannelType)(byte)(PacketHeader >> 14);
     public byte ResendCount => (byte)((PacketHeader >> 12) & 0b11);
     public bool IsSplit => ((PacketHeader >> 11) & 0b1) == 1;

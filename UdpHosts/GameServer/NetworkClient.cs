@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -74,9 +75,7 @@ public class NetworkClient : INetworkClient
         var headerSize = Unsafe.SizeOf<GamePacketHeader>();
         while (index + 2 < data.Length)
         {
-            var slice = data.Slice(index, 2).ToArray();
-            Array.Reverse(slice);
-            var header = Deserializer.ReadStruct<GamePacketHeader>(slice.AsMemory());
+            var header = new GamePacketHeader(BinaryPrimitives.ReadUInt16BigEndian(data.Span[index..(index + 2)]));
 
             if (header.Length == 0 || data.Length < header.Length + index)
             {

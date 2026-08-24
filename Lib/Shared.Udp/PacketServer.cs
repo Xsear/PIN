@@ -50,13 +50,29 @@ public abstract class PacketServer : IPacketSender
         while (IsRunning)
         {
             // TODO: Handle Command
-            var line = Console.ReadLine();
-            HandleCommand(line);
+            if (Console.IsInputRedirected)
+            {
+                Thread.Sleep(100);
+            }
+            else
+            {
+                var line = Console.ReadLine();
+                HandleCommand(line);
+            }
         }
 
         if (!Source.IsCancellationRequested)
         {
             Source.Cancel();
+        }
+
+        try
+        {
+            ServerSocket.Close();
+        }
+        catch (Exception)
+        {
+            // Socket already closed
         }
 
         Shutdown(ct);
@@ -83,10 +99,24 @@ public abstract class PacketServer : IPacketSender
 
     protected virtual async void ServerRunThreadAsync(CancellationToken ct)
     {
-        Packet? p;
-        while ((p = await IncomingPackets.ReceiveAsync(ct)) != null)
+        try
         {
-            HandlePacket(p.Value, ct);
+            Packet? p;
+            while ((p = await IncomingPackets.ReceiveAsync(ct)) != null)
+            {
+                try
+                {
+                    HandlePacket(p.Value, ct);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "Error handling packet from {0}", p.Value.RemoteEndpoint);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Shutdown
         }
     }
 
@@ -98,8 +128,8 @@ public abstract class PacketServer : IPacketSender
     {
         ServerSocket.Blocking = true;
         ServerSocket.DontFragment = true;
-        ServerSocket.ReceiveBufferSize = MTU * 100;
-        ServerSocket.SendBufferSize = MTU * 100;
+        TrySetBufferSize(SocketOptionName.ReceiveBuffer, MTU * 1000);
+        TrySetBufferSize(SocketOptionName.SendBuffer, MTU * 1000);
         ServerSocket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.PacketInformation, true);
         ServerSocket.Bind(ListenEndpoint);
 
@@ -126,45 +156,81 @@ public abstract class PacketServer : IPacketSender
                     // Should probably change to ArrayPool<byte>, but can't return a Memory<byte> :(
                     // TODO: Move Endpoint and Memory<byte> management to Packet (constructor + destructor)
                     var buf = new byte[numberOfBytesReceived];
-                    buffer.AsSpan()[..numberOfBytesReceived].ToArray().CopyTo(buf, 0);
-                    _ = await IncomingPackets.SendAsync(new Packet((IPEndPoint)remoteEndPoint, new ReadOnlyMemory<byte>(buf, 0, numberOfBytesReceived), DateTime.Now), ct);
+                    buffer.AsSpan()[..numberOfBytesReceived].CopyTo(buf);
+                    _ = await IncomingPackets.SendAsync(new Packet((IPEndPoint)remoteEndPoint, buf, DateTime.Now), ct);
 
                     // Not 100% sure this needs to be cleared?
                     remoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
                 }
             }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (SocketException ex)
+            {
+                if (ct.IsCancellationRequested)
+                {
+                    break; // Socket closed during shutdown
+                }
+
+                // Transient UDP errors (e.g. ICMP port unreachable from a dead peer) must not kill the listener
+                Logger.Warning(ex, "Listen error {0}; continuing.", ex.SocketErrorCode);
+            }
             catch (Exception ex)
             {
                 Logger.Error(ex, "Error {0}", "listenThread");
             }
+        }
+    }
 
-            _ = Thread.Yield();
+    private void TrySetBufferSize(SocketOptionName option, int size)
+    {
+        try
+        {
+            ServerSocket.SetSocketOption(SocketOptionLevel.Socket, option, size);
+        }
+        catch (SocketException ex)
+        {
+            Logger.Warning("Could not set {Option} to {Size} bytes ({Error}); keeping kernel default.", option, size, ex.SocketErrorCode);
         }
     }
 
     private async void SendThreadAsync(CancellationToken ct)
     {
-        while (OutgoingPackets == null)
-        {
-            Thread.Sleep(10);
-        }
-
         Thread.CurrentThread.Priority = ThreadPriority.Highest;
 
-        while (true)
+        try
         {
-            if (ct.IsCancellationRequested)
+            while (true)
             {
-                break;
-            }
+                Packet? packet;
+                while ((packet = await OutgoingPackets.ReceiveAsync(ct)) != null)
+                {
+                    try
+                    {
+                        _ = ServerSocket.SendTo(packet.Value.PacketData.Span, SocketFlags.None, packet.Value.RemoteEndpoint);
+                    }
+                    catch (SocketException ex)
+                    {
+                        if (ct.IsCancellationRequested)
+                        {
+                            throw; // Socket closed during shutdown - let the outer handler stop the thread
+                        }
 
-            Packet? packet;
-            while ((packet = await OutgoingPackets.ReceiveAsync(ct)) != null)
-            {
-                _ = ServerSocket.SendTo(packet.Value.PacketData.ToArray(), packet.Value.PacketData.Length, SocketFlags.None, packet.Value.RemoteEndpoint);
+                        // Transient UDP errors (e.g. ECONNREFUSED from an ICMP port unreachable of a dead peer) must not kill the sender
+                        Logger.Warning(ex, "Send to {0} failed ({1}); dropping packet.", packet.Value.RemoteEndpoint, ex.SocketErrorCode);
+                    }
+                }
             }
-
-            _ = Thread.Yield();
+        }
+        catch (OperationCanceledException)
+        {
+            // Shutdown
+        }
+        catch (SocketException)
+        {
+            // Socket closed during shutdown
         }
     }
 }

@@ -45,7 +45,7 @@ public partial class PhysicsEngine
     private int _debugEntityIndex = -1;
     private double _debugTimeAccumulator;
 
-    public PhysicsEngine(EventBus eventBus, uint zoneId, string mapsPath = "", string assetDBPath = "", bool loadMapsCollision = false, DebugProjectileHitCallbacks? debugProjectileHitCallbacks = null, bool isDebugPipeClient = false, string cachePath = "", bool forceReload = false)
+    public PhysicsEngine(EventBus eventBus, uint zoneId, string mapsPath = "", string assetDBPath = "", bool loadMapsCollision = false, DebugProjectileHitCallbacks? debugProjectileHitCallbacks = null, bool isDebugPipeClient = false, string cachePath = "", bool forceReload = false, TickStats tickStats = null)
     {
         _eventBus = eventBus;
         _logger = Log.Logger.ForContext<PhysicsEngine>();
@@ -58,7 +58,19 @@ public partial class PhysicsEngine
 
         BufferPool = new BufferPool();
         ThreadDispatcher = new ThreadDispatcher(targetThreadCount);
-        Simulation = Simulation.Create(BufferPool, new NarrowPhaseCallbacks(), new PoseIntegratorCallbacks(new Vector3(0, 0, -8)), new SolveDescription(8, 1));
+        Simulation = Simulation.Create(BufferPool, new NarrowPhaseCallbacks(), new PoseIntegratorCallbacks(new Vector3(0, 0, -8)), new SolveDescription(8, 1), tickStats != null ? new MeasuredTimestepper(tickStats) : null);
+
+        // Statics never move after zone load, so the static broadphase tree only needs
+        // validity maintenance (done by Add/Remove/UpdateBounds) - not periodic refinement.
+        // Bepu's default schedule refines it every substep (root refinement every 2 frames),
+        // which causes 300-450ms tick spikes on slow hardware.
+        Simulation.BroadPhase.StaticRefinementSchedule = (int frameIndex, in Tree tree, out int rootRefinementSize, out int subtreeRefinementCount, out int subtreeRefinementSize, out bool usePriorityQueue) =>
+        {
+            rootRefinementSize = 0;
+            subtreeRefinementCount = 0;
+            subtreeRefinementSize = 0;
+            usePriorityQueue = false;
+        };
 
         _fallbackShape = Simulation.Shapes.Add(new Sphere(0.9f));
 
@@ -91,6 +103,8 @@ public partial class PhysicsEngine
         {
             ZoneFileTimestamp = ts.Value;
         }
+
+        _logger.Information("Physics world after zone load: {Bodies} bodies, {Statics} statics, broadphase {BroadPhase}", Simulation.Bodies.CountBodies(), Simulation.Statics.Count, Simulation.BroadPhase.GetType().Name);
     }
 
     public StaticDescription[] LoadRigidBody(string assetId)

@@ -76,75 +76,24 @@ public class Channel
 
     public void Process(CancellationToken ct)
     {
-        while (_outgoingPackets.TryDequeue(out var qi))
-        {
-            _client.Send(qi);
-            LastActivity = DateTime.Now;
-        }
+        DrainOutgoing();
 
         while (_incomingPackets.TryDequeue(out var packet))
         {
-            ushort sequenceNumber = 0;
-            if (IsSequenced)
+            try
             {
-                sequenceNumber = Utils.SimpleFixEndianness(packet.Read<ushort>());
+                ProcessPacket(packet);
             }
-
-            // TODO: Verify if resent message handling works and resolve any issues
-            if (packet.Header.ResendCount > 0)
+            catch (Exception ex)
             {
-                var xorIndex = packet.Header.ResendCount - 1;
-                var data = packet.Peek(packet.BytesRemaining).ToArray();
-                for (var i = 0; i < data.Length; i++)
-                {
-                    data[i] ^= _xorByte[xorIndex];
-                }
-
-                packet = new GamePacket(packet.Header, new ReadOnlyMemory<byte>(data));
-                _logger.Debug("---> Resent packet!!! C:{Channel}: {PacketBytes} bytes", Type, packet.TotalBytes);
-            }
-
-            if (InSplitMode)
-            {
-                _incomingSplitMessagePackets.Add(sequenceNumber, packet);
-                if (!packet.Header.IsSplit)
-                {
-                    // Finish split mode
-                    InSplitMode = false;
-
-                    var combined = _incomingSplitMessagePackets
-                    .SelectMany((pair) => pair.Value.Peek(pair.Value.BytesRemaining).ToArray())
-                    .ToArray();
-                    _incomingSplitMessagePackets.Clear();
-
-                    var combinedPacket = new GamePacket(packet.Header, new ReadOnlyMemory<byte>(combined));
-
-                    _client.SendAck(Type, sequenceNumber, packet.Received);
-                    LastAck = sequenceNumber;
-                    PacketAvailable?.Invoke(combinedPacket);
-                }
-            }
-            else if (packet.Header.IsSplit)
-            {
-                // Enter split mode
-                InSplitMode = true;
-                _incomingSplitMessagePackets.Add(sequenceNumber, packet);
-                _client.SendAck(Type, sequenceNumber, packet.Received);
-                LastAck = sequenceNumber;
-            }
-            else
-            {
-                if (IsReliable && (sequenceNumber > LastAck || (sequenceNumber < 0xff && LastAck > 0xff00)))
-                {
-                    _client.SendAck(Type, sequenceNumber, packet.Received);
-                    LastAck = sequenceNumber;
-                }
-
-                PacketAvailable?.Invoke(packet);
+                _logger.Error(ex, "Failed to process packet on channel {Channel}; dropping packet.", Type);
             }
 
             LastActivity = DateTime.Now;
         }
+
+        // Flush ACKs and messages generated while processing incoming packets this tick
+        DrainOutgoing();
     }
 
     /// <summary>
@@ -508,5 +457,109 @@ public class Channel
         }
 
         return true;
+    }
+
+    private void ProcessPacket(GamePacket packet)
+    {
+        ushort sequenceNumber = 0;
+        if (IsSequenced)
+        {
+            sequenceNumber = Utils.SimpleFixEndianness(packet.Read<ushort>());
+        }
+
+        if (packet.Header.ResendCount > 0)
+        {
+            var xorIndex = packet.Header.ResendCount - 1;
+            var data = packet.Peek(packet.BytesRemaining).ToArray();
+            for (var i = 0; i < data.Length; i++)
+            {
+                data[i] ^= _xorByte[xorIndex];
+            }
+
+            packet = new GamePacket(packet.Header, new ReadOnlyMemory<byte>(data), packet.Received);
+            _logger.Debug("---> Resent packet!!! C:{Channel}: {PacketBytes} bytes", Type, packet.TotalBytes);
+        }
+
+        if (InSplitMode)
+        {
+            var isDuplicate = _incomingSplitMessagePackets.ContainsKey(sequenceNumber);
+            _incomingSplitMessagePackets[sequenceNumber] = packet;
+
+            if (isDuplicate)
+            {
+                // Resent fragment we already have: re-ACK so the client stops resending
+                _client.SendAck(Type, sequenceNumber, packet.Received);
+            }
+
+            if (!packet.Header.IsSplit)
+            {
+                // Finish split mode
+                InSplitMode = false;
+
+                var combined = _incomingSplitMessagePackets
+                .SelectMany((pair) => pair.Value.Peek(pair.Value.BytesRemaining).ToArray())
+                .ToArray();
+                _incomingSplitMessagePackets.Clear();
+
+                var combinedPacket = new GamePacket(packet.Header, new ReadOnlyMemory<byte>(combined), packet.Received);
+
+                _client.SendAck(Type, sequenceNumber, packet.Received);
+                LastAck = sequenceNumber;
+                PacketAvailable?.Invoke(combinedPacket);
+            }
+        }
+        else if (packet.Header.IsSplit)
+        {
+            // Enter split mode
+            InSplitMode = true;
+            _incomingSplitMessagePackets[sequenceNumber] = packet;
+            _client.SendAck(Type, sequenceNumber, packet.Received);
+            LastAck = sequenceNumber;
+        }
+        else
+        {
+            if (!IsReliable)
+            {
+                PacketAvailable?.Invoke(packet);
+                return;
+            }
+
+            if (IsNewer(sequenceNumber))
+            {
+                _client.SendAck(Type, sequenceNumber, packet.Received);
+                LastAck = sequenceNumber;
+                PacketAvailable?.Invoke(packet);
+            }
+            else if (IsDuplicate(sequenceNumber))
+            {
+                // Resent packet that was already ACKed: re-ACK so the client can stop resending, and drop the duplicate
+                _client.SendAck(Type, sequenceNumber, packet.Received);
+                _logger.Debug("---> Dropped duplicate packet C:{Channel} Seq:{SequenceNumber}", Type, sequenceNumber);
+            }
+            else
+            {
+                _logger.Debug("---> Dropped stale packet C:{Channel} Seq:{SequenceNumber} (LastAck: {LastAck})", Type, sequenceNumber, LastAck);
+            }
+        }
+    }
+
+    private bool IsNewer(ushort sequenceNumber)
+    {
+        return sequenceNumber > LastAck || (LastAck > 0xff00 && sequenceNumber < 0xff);
+    }
+
+    private bool IsDuplicate(ushort sequenceNumber)
+    {
+        // A resend carries the same sequence number as the packet we already ACKed
+        return sequenceNumber == LastAck;
+    }
+
+    private void DrainOutgoing()
+    {
+        while (_outgoingPackets.TryDequeue(out var qi))
+        {
+            _client.Send(qi);
+            LastActivity = DateTime.Now;
+        }
     }
 }

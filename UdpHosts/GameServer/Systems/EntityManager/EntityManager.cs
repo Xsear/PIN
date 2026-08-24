@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
@@ -38,7 +39,7 @@ public class EntityManager
     private readonly ulong _scopeInIntervalMs = 20;
     private readonly ulong _scopeCheckIntervalMs = 5000;
     private readonly ulong _lifetimeCheckIntervalMs = 1000;
-    private readonly ConcurrentDictionary<ulong, HashSet<INetworkPlayer>> _scopedPlayersByEntity = new();
+    private readonly ConcurrentDictionary<ulong, ConcurrentDictionary<INetworkPlayer, byte>> _scopedPlayersByEntity = new();
     private readonly ConcurrentQueue<ScopeInRequest> _queuedScopeIn = new();
     private readonly ConcurrentDictionary<ulong, Lifetime> _lifetimeByEntity = new();
     private uint _counter;
@@ -56,12 +57,27 @@ public class EntityManager
 
     public int GetNumberOfScopedEntities(IPlayer player)
     {
-        return _scopedPlayersByEntity.Values.Count(set => set.Contains(player));
+        if (player is not INetworkPlayer networkPlayer)
+        {
+            return 0;
+        }
+
+        return _scopedPlayersByEntity.Values.Count(set => set.ContainsKey(networkPlayer));
     }
 
     public bool HasScopedInEntity(ulong entityId, INetworkPlayer player)
     {
-        return _scopedPlayersByEntity.TryGetValue(entityId, out var players) && players.Contains(player);
+        return _scopedPlayersByEntity.TryGetValue(entityId, out var players) && players.ContainsKey(player);
+    }
+
+    private bool TryGetScopedPlayers(ulong entityId, out ConcurrentDictionary<INetworkPlayer, byte> players)
+    {
+        return _scopedPlayersByEntity.TryGetValue(entityId, out players);
+    }
+
+    private ConcurrentDictionary<INetworkPlayer, byte> GetOrAddScopedPlayers(ulong entityId)
+    {
+        return _scopedPlayersByEntity.GetOrAdd(entityId, _ => new ConcurrentDictionary<INetworkPlayer, byte>());
     }
 
     public CharacterEntity SpawnCharacter(uint typeId, Vector3 position, CharacterEntity owner = null, bool canBleedout = false)
@@ -417,6 +433,9 @@ public class EntityManager
 
     public void Tick(double deltaTime, ulong currentTime, CancellationToken ct)
     {
+        var stats = _shard.TickStats;
+        var t = Stopwatch.GetTimestamp();
+
         // Spawn entities on first real tick
         if (!_hasSpawnedZoneEntities && currentTime != 0)
         {
@@ -427,6 +446,8 @@ public class EntityManager
                 SpawnZoneEntities(_shard.ZoneId);
             }
         }
+
+        stats.Accumulate(TickPhase.EntSpawn, ref t);
 
         // Process queued scope-ins
         if (!_queuedScopeIn.IsEmpty && currentTime > _lastScopeIn + _scopeInIntervalMs)
@@ -440,15 +461,23 @@ public class EntityManager
             _lastScopeIn = currentTime;
         }
 
+        stats.Accumulate(TickPhase.EntScopeIn, ref t);
+
         // Flush changes periodically
         if (currentTime > _lastUpdateFlush + _updateFlushIntervalMs)
         {
             _lastUpdateFlush = currentTime;
+            var flushed = 0;
             foreach (var entity in _shard.Entities.Values)
             {
                 FlushChanges(entity);
+                flushed++;
             }
+
+            stats.AddFlush(flushed, 0);
         }
+
+        stats.Accumulate(TickPhase.EntFlush, ref t);
 
         // Check if any entities have ran out lifetime
         if (currentTime > _lastLifetimeCheck + _lifetimeCheckIntervalMs)
@@ -463,6 +492,8 @@ public class EntityManager
             }
         }
 
+        stats.Accumulate(TickPhase.EntLifetime, ref t);
+
         // Check if we should scope in/out entities for each player
         if (currentTime > _lastScopeCheck + _scopeCheckIntervalMs)
         {
@@ -472,8 +503,14 @@ public class EntityManager
 
             foreach (var entity in entities)
             {
+                // Entity may have been removed by another thread between the snapshot and now
+                if (!TryGetScopedPlayers(entity.EntityId, out var currentlyScoped))
+                {
+                    _logger.Debug("Scope check skipping untracked entity {EntityId}", entity.EntityId);
+                    continue;
+                }
+
                 float distanceThreshold = entity.GetScopeRange();
-                var currentlyScoped = _scopedPlayersByEntity[entity.EntityId];
                 var entityPosition = entity.Position;
                 foreach (var player in players)
                 {
@@ -483,7 +520,7 @@ public class EntityManager
                         continue;
                     }
 
-                    bool isScoped = currentlyScoped.Contains(player);
+                    bool isScoped = currentlyScoped.ContainsKey(player);
                     bool shouldBeScoped = false;
 
                     // Determine shouldBeScoped
@@ -523,11 +560,13 @@ public class EntityManager
                 }
             }
         }
+
+        stats.Accumulate(TickPhase.EntScopeCheck, ref t);
     }
 
     public void Add(ulong guid, IEntity entity)
     {
-        _ = _scopedPlayersByEntity.TryAdd(guid, []);
+        _ = _scopedPlayersByEntity.TryAdd(guid, new ConcurrentDictionary<INetworkPlayer, byte>());
         _shard.Entities.Add(guid, entity);
         OnAddedEntity(entity);
     }
@@ -535,7 +574,7 @@ public class EntityManager
     public void Add(IEntity entity)
     {
         var guid = new Core.Data.EntityGuid(_serverId, _shard.CurrentTime, _counter++, (byte)Enums.GSS.Controllers.Character);
-        _ = _scopedPlayersByEntity.TryAdd(guid.Full, []);
+        _ = _scopedPlayersByEntity.TryAdd(guid.Full, new ConcurrentDictionary<INetworkPlayer, byte>());
         _shard.Entities.Add(guid.Full, entity);
         OnAddedEntity(entity);
     }
@@ -1122,7 +1161,14 @@ public class EntityManager
             return;
         }
 
-        _scopedPlayersByEntity[entity.EntityId].Add(player);
+        // Entity may have been removed concurrently (stale reference from a queued/async request)
+        if (!_shard.Entities.TryGetValue(entity.EntityId, out _))
+        {
+            _logger.Warning("ScopeIn called for removed entity {EntityId}; ignoring", entity.EntityId);
+            return;
+        }
+
+        GetOrAddScopedPlayers(entity.EntityId).TryAdd(player, 0);
 
         if (entity is CharacterEntity character)
         {
@@ -1362,7 +1408,13 @@ public class EntityManager
             return;
         }
 
-        _scopedPlayersByEntity[entity.EntityId].Remove(player);
+        // Entity may have been removed concurrently; nothing to un-scope
+        if (!TryGetScopedPlayers(entity.EntityId, out var scopedPlayers))
+        {
+            return;
+        }
+
+        _ = scopedPlayers.TryRemove(player, out _);
 
         if (entity is CharacterEntity character)
         {
@@ -1646,6 +1698,14 @@ public class EntityManager
 
     public void FlushChanges(IEntity entity)
     {
+        // Entity may have been removed concurrently (stale reference from an effect chain / async work);
+        // flushing it would hit scoped-lookup paths for an untracked entity
+        if (!_shard.Entities.TryGetValue(entity.EntityId, out _))
+        {
+            _logger.Warning("FlushChanges called for removed entity {EntityId}; ignoring", entity.EntityId);
+            return;
+        }
+
         if (entity is CharacterEntity character)
         {
             if (character.IsPlayerControlled)
@@ -1730,8 +1790,16 @@ public class EntityManager
         bool shouldFlush = view != null && view.GetPackedChangesSize() > 0;
         if (shouldFlush)
         {
+            // Entity may have been removed concurrently; nobody is scoped to it anymore
+            if (!TryGetScopedPlayers(entityId, out var scopedPlayers))
+            {
+                _logger.Debug("FlushViewChangesToScoped for untracked entity {EntityId}; dropping", entityId);
+                return;
+            }
+
             view.SerializeChangesToMemory(out var update);
-            foreach (var client in _scopedPlayersByEntity[entityId])
+            _shard.TickStats.AddFlush(0, update.Length);
+            foreach (var client in scopedPlayers.Keys)
             {
                 bool shouldSend = client.Status.Equals(IPlayer.PlayerStatus.Playing) || client.Status.Equals(IPlayer.PlayerStatus.Loading);
                 if (shouldSend)
@@ -1746,7 +1814,14 @@ public class EntityManager
     where TNormal : class, IAero
     {
         var entityId = entity.EntityId;
-        foreach (var client in _scopedPlayersByEntity[entityId])
+
+        // Entity may have been removed concurrently
+        if (!TryGetScopedPlayers(entityId, out var scopedPlayers))
+        {
+            return;
+        }
+
+        foreach (var client in scopedPlayers.Keys)
         {
             if (client.CanReceiveGSS)
             {
@@ -1770,7 +1845,13 @@ public class EntityManager
 
     private void OnRemovedEntity(IEntity entity)
     {
-        foreach (var client in _scopedPlayersByEntity[entity.EntityId])
+        // A concurrent Remove may have already cleaned up the scoped players
+        if (!TryGetScopedPlayers(entity.EntityId, out var scopedPlayers))
+        {
+            return;
+        }
+
+        foreach (var client in scopedPlayers.Keys)
         {
             ScopeOut(client, entity);
         }

@@ -43,7 +43,19 @@ public static class Deserializer
 
     public static T Read<T>(ref ReadOnlyMemory<byte> data)
     {
-        return (T)Read(ref data, typeof(T));
+        var type = typeof(T);
+
+        if (type.IsPrimitive || type == typeof(Half))
+        {
+            return (T)ReadPrimitive(ref data, type);
+        }
+
+        if (type.IsEnum)
+        {
+            return (T)Enum.ToObject(type, ReadPrimitive(ref data, Enum.GetUnderlyingType(type)));
+        }
+
+        return (T)Read(ref data, type);
     }
 
     public static object ReadPrimitive(ref ReadOnlyMemory<byte> data, Type type)

@@ -30,6 +30,8 @@ public class Shard : IShard
 {
     private const double _networkTickRate = 1.0 / 20.0;
 
+    private readonly double _gameTickMs;
+    private readonly TickStats _tickStats = new();
     private long _startTime;
     private double _lastNetTick;
     private ushort _lastEntityRefId;
@@ -37,6 +39,8 @@ public class Shard : IShard
     public Shard(double gameTickRate, ulong instanceId, GameServerSettings settings, IPacketSender sender, Serilog.ILogger logger)
     {
         _lastEntityRefId = 0;
+        // gameTickRate is the tick period in seconds (e.g. 1/60)
+        _gameTickMs = gameTickRate * 1000.0;
         InstanceId = instanceId;
         Settings = settings;
         ZoneId = settings.ZoneId;
@@ -48,7 +52,7 @@ public class Shard : IShard
         Outposts = new ConcurrentDictionary<uint, IDictionary<uint, OutpostEntity>>();
         EventBus = new EventBus();
         var debugCallbacks = new DebugProjectileHitCallbacks(this);
-        Physics = new PhysicsEngine(EventBus, Settings.ZoneId, Settings.MapsPath, Settings.AssetDBPath, Settings.LoadMapsCollision, debugCallbacks, false, Settings.CachePath, Settings.ForceReloadZone);
+        Physics = new PhysicsEngine(EventBus, Settings.ZoneId, Settings.MapsPath, Settings.AssetDBPath, Settings.LoadMapsCollision, debugCallbacks, false, Settings.CachePath, Settings.ForceReloadZone, _tickStats);
         AI = new AIEngine();
         Movement = new MovementRelay(this);
         Abilities = new AbilitySystem(this);
@@ -96,6 +100,7 @@ public class Shard : IShard
     public IDictionary<ushort, Tuple<IEntity, Enums.GSS.Controllers>> EntityRefMap { get; }
     public Serilog.ILogger Logger { get; }
     public GameServerSettings Settings { get; }
+    public TickStats TickStats => _tickStats;
     private IPacketSender Sender { get; }
 
     public void Run(CancellationToken ct)
@@ -106,27 +111,53 @@ public class Shard : IShard
     public void NetworkTick(double deltaTime, ulong currentTime, CancellationToken ct)
     {
         // Handle timeout, reliable retransmission, normal rx/tx
+        var t = Stopwatch.GetTimestamp();
         foreach (var client in Clients.Values)
         {
             client.NetworkTick(deltaTime, currentTime, ct);
         }
+
+        _tickStats.Accumulate(TickPhase.Net, ref t);
     }
 
     public bool Tick(double deltaTime, ulong currentTime, CancellationToken ct)
     {
         CurrentTimeLong = currentTime;
 
+        var t = Stopwatch.GetTimestamp();
+
         AI.Tick(deltaTime, currentTime, ct);
+        _tickStats.Accumulate(TickPhase.Ai, ref t);
+
         Physics.Tick(deltaTime, currentTime, ct);
+        _tickStats.Accumulate(TickPhase.Physics, ref t);
+
         EntityMan.Tick(deltaTime, currentTime, ct);
+        _tickStats.Accumulate(TickPhase.EntityMan, ref t);
+
         EncounterMan.Tick(deltaTime, currentTime, ct);
+        _tickStats.Accumulate(TickPhase.Encounter, ref t);
+
         Abilities.Tick(deltaTime, currentTime, ct);
+        _tickStats.Accumulate(TickPhase.Abilities, ref t);
+
         WeaponSim.Tick(deltaTime, currentTime, ct);
+        _tickStats.Accumulate(TickPhase.Weapon, ref t);
+
         ProjectileSim.Tick(deltaTime, currentTime, ct);
+        _tickStats.Accumulate(TickPhase.Projectile, ref t);
+
         Damage.Tick(deltaTime, currentTime, ct);
+        _tickStats.Accumulate(TickPhase.Damage, ref t);
+
         CharacterLifecycle.Tick(deltaTime, currentTime, ct);
+        _tickStats.Accumulate(TickPhase.Lifecycle, ref t);
+
         PlayerRespawn.Tick(deltaTime, currentTime, ct);
+        _tickStats.Accumulate(TickPhase.Respawn, ref t);
+
         EventBus.Flush();
+        _tickStats.Accumulate(TickPhase.EventBus, ref t);
 
         return true;
     }
@@ -195,15 +226,39 @@ public class Shard : IShard
 
         var stopwatch = new Stopwatch();
         var lastTime = 0.0;
+        var nextTick = _gameTickMs;
 
         stopwatch.Start();
 
+        var tickEnd = Stopwatch.GetTimestamp();
+
         while (!ct.IsCancellationRequested)
         {
-            // (ulong)(DateTime.Now.UnixTimestamp() * 1000);
+            var now = stopwatch.Elapsed.TotalMilliseconds;
+
+            if (now < nextTick)
+            {
+                var remainingMs = (int)(nextTick - now);
+                if (remainingMs > 2)
+                {
+                    Thread.Sleep(remainingMs - 1);
+                }
+                else
+                {
+                    Thread.SpinWait(10);
+                }
+
+                continue;
+            }
+
+            // Time spent since the last tick finished: sleep imprecision, GC pauses, thread starvation
+            _tickStats.AddGap(tickEnd);
+
+            var tickStart = Stopwatch.GetTimestamp();
+
             var currentUnixTimestamp = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            var currentTime = unchecked((ulong)stopwatch.Elapsed.TotalMilliseconds);
-            var delta = currentTime - lastTime;
+            var currentTime = unchecked((ulong)now);
+            var delta = now - lastTime;
 
             if (ShouldNetworkTick(currentTime - _lastNetTick, currentUnixTimestamp))
             {
@@ -216,8 +271,21 @@ public class Shard : IShard
                 break;
             }
 
-            lastTime = currentTime;
-            _ = Thread.Yield();
+            _tickStats.Accumulate(TickPhase.Total, ref tickStart);
+            _tickStats.TryReport(Logger, InstanceId, Entities.Count, Clients.Count);
+
+            tickEnd = Stopwatch.GetTimestamp();
+            lastTime = now;
+
+            // Advance to the next tick; after a stall, don't try to catch up
+            if (nextTick <= now)
+            {
+                nextTick = now + _gameTickMs;
+            }
+            else
+            {
+                nextTick += _gameTickMs;
+            }
         }
 
         stopwatch.Stop();
